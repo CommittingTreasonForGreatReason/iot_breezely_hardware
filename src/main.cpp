@@ -4,6 +4,7 @@
 #include "wifi_manual.hpp"
 #include "wifi_protect_setup.hpp"
 #include "web_server.hpp"
+#include "dht_sensor.hpp"
 
 #define MAGNET_INPUT_PIN 18
 #define MAGNET_STATUS_PIN 22
@@ -15,6 +16,10 @@ void setup()
   pinMode(MAGNET_STATUS_PIN, OUTPUT);
   pinMode(HTTP_OUTPUT_PIN, OUTPUT);
   pinMode(MAGNET_INPUT_PIN, INPUT);
+
+  dht_sensor_setup();
+  delay(2000);
+
   Serial.begin(115200);
   Serial.println("");
 
@@ -31,6 +36,7 @@ bool is_connected = false;
 
 void loop()
 {
+
   if (!is_connected && WiFi.status() == WL_CONNECTED)
   {
     Serial.println("wifi connection was made :-)");
@@ -65,5 +71,6 @@ void loop()
   digitalWrite(MAGNET_STATUS_PIN, pin_status);
   // Serial.print("pin status: ");
   // Serial.println(pin_status);
+
   delay(500);
 }
