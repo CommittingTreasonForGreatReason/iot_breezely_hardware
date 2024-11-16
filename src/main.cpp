@@ -39,7 +39,7 @@ void setup()
   pinMode(MAGNET_INPUT_PIN, INPUT);
   Serial.begin(921600);
   Serial.println("");
-  wifi_wps_setup();
+  wifi_manual_setup();
   Serial.println("setup_complete");
   Serial.println("connecting to wifi");
 }
