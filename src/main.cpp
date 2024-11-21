@@ -4,6 +4,7 @@
 #include "wifi_manual.hpp"
 #include "wifi_protect_setup.hpp"
 #include "web_server.hpp"
+#include "web_client.hpp"
 #include "dht_sensor.hpp"
 
 #define MAGNET_INPUT_PIN 18
@@ -57,8 +58,10 @@ void loop()
     digitalWrite(WIFI_STATUS_PIN, HIGH);
     is_connected = true;
 
-    Serial.println("starting web server");
-    web_server_setup();
+    // Serial.println("starting web server");
+    // web_server_setup();
+    Serial.println("starting web client");
+    web_client_setup();
   }
   if (WiFi.status() != WL_CONNECTED)
   {
