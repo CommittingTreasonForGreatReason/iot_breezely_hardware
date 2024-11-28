@@ -7,6 +7,7 @@
 #include "web_client.hpp"
 #include "dht_sensor.hpp"
 
+// GPIO pin mapping definitions  
 #define MAGNET_INPUT_PIN 18
 #define MAGNET_STATUS_PIN 22
 #define WIFI_STATUS_PIN 21
