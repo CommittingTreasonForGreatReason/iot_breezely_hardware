@@ -1,6 +1,7 @@
 // standard library includes
 #include <Arduino.h>
-#include "WiFi.h"
+#include <SPIFFS.h>
+#include <WiFi.h>
 
 // local includes
 #include "utils.hpp"
@@ -23,6 +24,12 @@ void setup()
     pinMode(MAGNET_STATUS_PIN, OUTPUT);
     pinMode(HTTP_OUTPUT_PIN, OUTPUT);
     pinMode(MAGNET_INPUT_PIN, INPUT);
+
+    // Initialize SPIFFS
+    if (!SPIFFS.begin(true)) {
+        Serial.println("An error occurred while mounting SPIFFS");
+        return;
+    }
 
     // setup DH11 sensor for air temperature and humidity    
     dht_sensor_setup();
@@ -73,8 +80,8 @@ void loop()
         is_connected = true;
 
         // continue to launch the webinterface 
-        // Serial.println("starting web server");
-        // web_server_setup();
+        Serial.println("starting web server");
+        web_server_setup();
 
         // at last init the http client for communication with cloud backend
         Serial.println("starting web client");
@@ -91,8 +98,8 @@ void loop()
     int pin_status = digitalRead(MAGNET_INPUT_PIN); // doesn't work for some reason ...
     digitalWrite(MAGNET_STATUS_PIN, pin_status);
 
-    // Serial.print("pin status: ");
-    // Serial.println(pin_status);
+    Serial.print("pin status: ");
+    Serial.println(pin_status);
 
     delay(500);
 }
