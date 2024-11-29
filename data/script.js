@@ -6,40 +6,27 @@ function toggleCheckbox(element) {
     xhr.send();
 }
 
+// method to update all displayed sensor measurements at once by passing a json object
+function setAllDisplayedMeasurements(measurements) {
+    document.getElementById("window-state").innerHTML = measurements['window-state'];
+    document.getElementById("air-temperature").innerHTML = measurements['air-temperature'];
+    document.getElementById("air-humidity").innerHTML = measurements['air-humidity'];
+    document.getElementById("dummy").innerHTML = measurements['dummy'];
+    // ...
+}
+
 // setup periodic background polling of air temperature using AJAX
-let pollingPeriod = 10000;
+let pollingPeriod = 4000;
 setInterval(function () {
     let xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
-            document.getElementById("temperature").innerHTML = this.responseText;
-        }
-    };
-    xhttp.open("GET", "/temperature", true);
-    xhttp.send();
-}, pollingPeriod);
 
-// setup periodic background polling of air humidity using AJAX
-setInterval(function () {
-    let xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-            document.getElementById("humidity").innerHTML = this.responseText;
+            // display the receceived json encoded measurements on the webpage
+            let response = JSON.parse(this.responseText);
+            setAllDisplayedMeasurements(response);
         }
     };
-    xhttp.open("GET", "/humidity", true);
-    xhttp.send();
-}, pollingPeriod);
-
-// setup periodic background polling of window sensor using AJAX
-pollingPeriod = 3000;
-setInterval(function () {
-    let xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-            document.getElementById("window-state").innerHTML = this.responseText;
-        }
-    };
-    xhttp.open("GET", "/window_state", true);
+    xhttp.open("GET", "/sensor_read", true);
     xhttp.send();
 }, pollingPeriod);

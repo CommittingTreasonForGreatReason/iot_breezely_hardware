@@ -1,31 +1,116 @@
+/* General Reset */
+body,
+h1,
+h2,
+h3,
+p {
+    margin: 0;
+    padding: 0;
+}
+
 body {
     font-family: Arial, sans-serif;
-    text-align: center;
-    padding: 20px;
+    background-color: #f4f4f4;
+    color: #333;
+    line-height: 1.6;
 }
 
-h1 {
-    color: #0078D7;
-}
-
-button {
-    padding: 10px 20px;
-    font-size: 16px;
+/* Header */
+header {
     background-color: #0078D7;
-    color: white;
+    color: #fff;
+    padding: 15px 20px;
+    text-align: center;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Navigation */
+nav {
+    display: flex;
+    justify-content: center;
+    background: #005A9E;
+}
+
+nav a {
+    color: #fff;
+    text-decoration: none;
+    padding: 10px 15px;
+    font-size: 14px;
+}
+
+nav a:hover {
+    background: #0078D7;
+}
+
+/* Main Content */
+main {
+    max-width: 680px;
+    margin: 20px auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Section Titles */
+h2 {
+    color: #0078D7;
+    border-bottom: 2px solid #0078D7;
+    margin-bottom: 15px;
+    padding-bottom: 5px;
+    font-size: 18px;
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+table th,
+table td {
+    padding: 10px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+table th {
+    background-color: #0078D7;
+    color: #fff;
+}
+
+/* Buttons */
+button {
+    background-color: #0078D7;
+    color: #fff;
     border: none;
+    padding: 10px 20px;
     border-radius: 5px;
     cursor: pointer;
+    font-size: 14px;
+    margin: 5px 0;
 }
 
 button:hover {
     background-color: #005A9E;
 }
 
+/* Footer */
+footer {
+    text-align: center;
+    margin-top: 20px;
+    padding: 10px 0;
+    background: #f4f4f4;
+    font-size: 12px;
+    color: #555;
+}
+
+/* legacy
 .fa-thermometer-half {
     color: #059e8a;
 }
-
 .fa-tint {
     color: #00add6;
 }
+*/
