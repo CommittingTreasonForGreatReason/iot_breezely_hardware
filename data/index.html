@@ -3,23 +3,24 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>ESP Web Server</title>
+    <title>Breezely</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-
     <header>
         <h1>Breezely Device Management</h1>
     </header>
 
+    <!-- navigation bar at the top -->
     <nav>
+        <a href="index.html">Start</a>
         <a href="#">Settings</a>
-        <a href="#">Info</a>
-        <a href="#">Logs</a>
+        <a href="device-info.html">Info</a>
     </nav>
 
+    <!-- main section in the middle -->
     <main>
         <h2>Live sensor measurements</h2>
         <table>
@@ -63,27 +64,12 @@
             <p><input type="submit" value="Login"></p>
         </form>
         <br>
-
-        <!-- legacy content
-        <p>
-            <i class="fas fa-thermometer-half"></i>
-            <span class="dht-labels">Temperature</span>
-            <span id="air-temperature"> measuring ...</span>
-            <sup class="units">&deg;C</sup>
-        </p>
-        <p>
-            <i class="fas fa-tint"></i>
-            <span class="dht-labels">Humidity</span>
-            <span id="air-humidity">measuring ...</span>
-            <sup class="units">&percnt;</sup>
-        </p>
-        -->
-
     </main>
 
     <!-- execute the script for dynamic updates -->
     <script src="script.js"></script>
 
+    <!-- static section at the bottom for impressum, references, etc. -->
     <footer>
         <p>Breezely Management Interface &copy; 2024</p>
     </footer>
