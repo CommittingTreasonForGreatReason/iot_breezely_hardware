@@ -1,0 +1,79 @@
+<!DOCTYPE HTML>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>ESP Web Server</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <form action="/login">
+        username: <input type="text" name="username">
+        password: <input type="text" name="password">
+        <input type="submit" value="Submit">
+    </form><br>
+    
+    <!-- some button for testing -->
+    <button id="some-button" title="click me">
+    </button>
+
+    <!-- a table like display for live GPIO states -->
+    <h1>ESP32 GPIO States</h1>
+    <table>
+        <tr><th>Pin</th><th>State</th></tr>
+        <tr><td>Window status</td><td id="window-state-label">measuring ...</td></tr>
+        <!-- ... -->
+    </table>
+
+    <!-- live display of air quality measurements -->
+    <p>
+        <i class="fas fa-thermometer-half"></i>
+        <span class="dht-labels">Temperature</span>
+        <span id="temperature"> measuring ...</span>
+        <sup class="units">&deg;C</sup>
+    </p>
+    <p>
+        <i class="fas fa-tint"></i>
+        <span class="dht-labels">Humidity</span>
+        <span id="humidity">measuring ...</span>
+        <sup class="units">&percnt;</sup>
+    </p>
+
+    <!-- execute the script for dynamic updates -->
+    <script src="script.js"></script>
+
+    <script>
+        function toggleCheckbox(element) {
+            var xhr = new XMLHttpRequest();
+            if (element.checked) { xhr.open("GET", "/gpio_update?output=" + element.id + "&state=1", true); }
+            else { xhr.open("GET", "/gpio_update?output=" + element.id + "&state=0", true); }
+            xhr.send();
+        }
+
+        setInterval(function () {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    document.getElementById("temperature").innerHTML = this.responseText;
+                }
+            };
+            xhttp.open("GET", "/temperature", true);
+            xhttp.send();
+        }, 10000);
+
+        setInterval(function () {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    document.getElementById("humidity").innerHTML = this.responseText;
+                }
+            };
+            xhttp.open("GET", "/humidity", true);
+            xhttp.send();
+        }, 10000);
+    </script>
+</body>
+
+</html>
