@@ -1,12 +1,15 @@
-#include "web_server.hpp"
 #include <WiFi.h>
+#include <Arduino.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
-#include <Arduino.h>
+
+#include "web_server.hpp"
 #include "dht_sensor.hpp"
 
+// define http server instance on default port 80
 AsyncWebServer server(80);
 
+// html template reused with placeholders
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML>
 <html>
@@ -165,13 +168,31 @@ void on_http_humidity(AsyncWebServerRequest *request)
     request->send_P(200, "text/plain", String(humidity).c_str());
 }
 
+// List of GPIO pins to monitor
+const int gpioPins[] = { 18 }; 
+const int numPins = sizeof(gpioPins) / sizeof(gpioPins[0]);
+String html = "<html><body><h1>ESP32 GPIO States</h1><table border='1'><tr><th>Pin</th><th>State</th></tr>";
+
+void on_http_gpio_read_all(AsyncWebServerRequest *request) 
+{
+    
+    for (int i = 0; i < numPins; i++) {
+      int state = digitalRead(gpioPins[i]);
+      html += "<tr><td>GPIO " + String(gpioPins[i]) + "</td><td>" + String(state) + "</td></tr>";
+    }
+    html += "</table></body></html>";
+    request->send(200, "text/html", html);
+}
+
 int web_server_setup()
 {
+    // define the async callback functions for different routes (= http paths)
     server.on("/", HTTP_GET, on_http_root);
     server.on("/login", HTTP_GET, on_http_login);
     server.on("/gpio_update", HTTP_GET, on_http_gpio_update);
     server.on("/temperature", HTTP_GET, on_http_temperature);
     server.on("/humidity", HTTP_GET, on_http_humidity);
+    server.on("/gpio_read_all", HTTP_GET, on_http_gpio_read_all);
 
     server.onNotFound(not_http_found);
     server.begin();
