@@ -3,6 +3,7 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <SPIFFS.h>
+#include <ArduinoJson.h>
 
 #include "web_server.hpp"
 #include "dht_sensor.hpp"
@@ -72,27 +73,25 @@ void on_http_gpio_write(AsyncWebServerRequest *request)
     request->send(200, "text/plain", "OK");
 }
 
-void on_http_temperature_read(AsyncWebServerRequest *request)
+// callback function for sending sensor measurements to the browser on demand
+void on_http_sensor_read(AsyncWebServerRequest *request)
 {
-    Serial.println("Temperature was just requested from client");
-    float temperature = dht_sensor_get_temperature();
-    // print_temperature(temperature);
-    request->send_P(200, "text/plain", String(temperature).c_str());
-}
+    static int dummyCnt = 0;
+    Serial.println("--> sensor read request from client");
 
-void on_http_humidity_read(AsyncWebServerRequest *request)
-{
-    Serial.println("Humidity was just requested from client");
-    float humidity = dht_sensor_get_humidity();
-    // print_humidity(humidity);
-    request->send_P(200, "text/plain", String(humidity).c_str());
-}
+    // store sensor data as dictionary of key-value-pairs
+    JsonDocument jsonDoc;
+    jsonDoc["window-state"] = digitalRead(18) == HIGH ? "open" : "closed";
+    jsonDoc["air-temperature"] = dht_sensor_get_temperature();
+    jsonDoc["air-humidity"] = dht_sensor_get_humidity();
+    dummyCnt += 1;
+    jsonDoc["dummy"] = dummyCnt;
+    // ...
 
-void on_window_state_read(AsyncWebServerRequest *request)
-{
-    Serial.println("Window sensor state was just requested from client");
-    String state = digitalRead(18) == HIGH ? "open" : "closed";
-    request->send_P(200, "text/plain", state.c_str());
+    // send http response with json encoded payload
+    String jsonResponse;
+    serializeJson(jsonDoc, jsonResponse);
+    request->send(200, "application/json", jsonResponse);
 }
 
 // setup function for the local async webserver
@@ -104,9 +103,8 @@ int web_server_setup()
     // define the async callback functions for different routes (= http paths)
     server.on("/login", HTTP_GET, on_http_login);
     server.on("/gpio_write", HTTP_GET, on_http_gpio_write);
-    server.on("/temperature", HTTP_GET, on_http_temperature_read);
-    server.on("/humidity", HTTP_GET, on_http_humidity_read);
-    server.on("/window_state", HTTP_GET, on_window_state_read);
+
+    server.on("/sensor_read", HTTP_GET, on_http_sensor_read);
     server.onNotFound(on_http_not_found);
 
     server.begin();
