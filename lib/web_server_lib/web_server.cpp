@@ -91,6 +91,7 @@ void on_http_sensor_read(AsyncWebServerRequest *request)
     // send http response with json encoded payload
     String jsonResponse;
     serializeJson(jsonDoc, jsonResponse);
+    Serial.println(jsonResponse);
     request->send(200, "application/json", jsonResponse);
 }
 

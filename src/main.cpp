@@ -14,7 +14,6 @@
 
 // GPIO pin mapping definitions
 #define MAGNET_INPUT_PIN 18
-#define MAGNET_STATUS_PIN 22
 #define WIFI_STATUS_PIN 21
 
 #define HOSTNAME "breezely-esp32"           // input a desired hostname for mDNS
@@ -24,8 +23,6 @@ void setup()
 {
     // configure GPIO pins
     pinMode(WIFI_STATUS_PIN, OUTPUT);
-    pinMode(MAGNET_STATUS_PIN, OUTPUT);
-    pinMode(HTTP_OUTPUT_PIN, OUTPUT);
     pinMode(MAGNET_INPUT_PIN, INPUT);
 
     // Initialize SPIFFS
@@ -114,7 +111,6 @@ void loop()
     // readout the magnetic reed switch and control output pin accordingly
     static int last_pin_status = LOW;
     int pin_status = digitalRead(MAGNET_INPUT_PIN);
-    digitalWrite(MAGNET_STATUS_PIN, pin_status);
     if(pin_status != last_pin_status) {
         Serial.printf("updated pin status: %d \n", pin_status);
         last_pin_status = pin_status;
