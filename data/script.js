@@ -1,8 +1,11 @@
 // legacy function to handle checkbox change events 
 function toggleCheckbox(element) {
     let xhr = new XMLHttpRequest();
-    if (element.checked) { xhr.open("GET", "/gpio_update?output=" + element.id + "&state=1", true); }
-    else { xhr.open("GET", "/gpio_update?output=" + element.id + "&state=0", true); }
+    if (element.checked) { 
+        xhr.open("GET", "/gpio_update?output=" + element.id + "&state=1", true); 
+    } else { 
+        xhr.open("GET", "/gpio_update?output=" + element.id + "&state=0", true); 
+    }
     xhr.send();
 }
 
