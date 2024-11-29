@@ -94,6 +94,27 @@ void on_http_sensor_read(AsyncWebServerRequest *request)
     request->send(200, "application/json", jsonResponse);
 }
 
+// callback function for handling fetch device info request
+void on_http_fetch_device_info(AsyncWebServerRequest *request)
+{
+    Serial.println("--> device info request from client");
+
+    JsonDocument jsonDoc;
+    jsonDoc["device-name"] = "name";
+    jsonDoc["uptime"] = "dd hh:mm:ss";
+    jsonDoc["wifi-ssid"] = WiFi.SSID();
+    jsonDoc["ipv4-address"] = WiFi.localIP().toString();
+    jsonDoc["mac-address"] = WiFi.macAddress();
+    jsonDoc["hostname"] = WiFi.getHostname();
+    jsonDoc["cloud-connection-status"] = "offline";
+    // ...
+
+    // send http response with json encoded payload
+    String jsonResponse;
+    serializeJson(jsonDoc, jsonResponse);
+    request->send(200, "application/json", jsonResponse);
+}
+
 // setup function for the local async webserver
 int web_server_setup()
 {
@@ -105,6 +126,7 @@ int web_server_setup()
     server.on("/gpio_write", HTTP_GET, on_http_gpio_write);
 
     server.on("/sensor_read", HTTP_GET, on_http_sensor_read);
+    server.on("/device_info", on_http_fetch_device_info);
     server.onNotFound(on_http_not_found);
 
     server.begin();
