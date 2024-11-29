@@ -25,24 +25,24 @@
 
         <h3>General</h3>
         <table>
-            <tr><td>Device name</td><td>...</td></tr>
-            <tr><td>Uptime</td><td>dd hh:mm:ss</td></tr>
+            <tr><td>Device name</td><td id="device-name">...</td></tr>
+            <tr><td>Uptime</td><td id="uptime">dd hh:mm:ss</td></tr>
             <!-- ... -->
         </table>
         
         <h3>Network</h3>
         <table>
-            <tr><td>Wifi SSID</td><td>...</td></tr>
-            <tr><td>IPv4 address</td><td>xxx.xxx.xxx.xxx</td></tr>
-            <tr><td>MAC address</td><td>XX:XX:XX:XX:XX:XX</td></tr>
-            <tr><td>Hostname</td><td>...</td></tr>
-            <tr><td>Cloud connection status</td><td>unknown</td></tr>
+            <tr><td>Wifi SSID</td><td id="wifi-ssid">...</td></tr>
+            <tr><td>IPv4 address</td><td id="ipv4-address">xxx.xxx.xxx.xxx</td></tr>
+            <tr><td>MAC address</td><td id="mac-address">XX:XX:XX:XX:XX:XX</td></tr>
+            <tr><td>Hostname</td><td id="hostname">...</td></tr>
+            <tr><td>Cloud connection status</td><td id="cloud-connection-status">unknown</td></tr>
             <!-- ... -->
         </table>
     </main>
 
-    <!-- execute the script for dynamic updates -->
-    <script src="script.js"></script>
+    <!-- execute the script to fetch device info -->
+    <script src="script.js" onload="fetchAndDisplayDeviceInfo()"></script>
 
     <!-- static section at the bottom for impressum, references, etc. -->
     <footer>
