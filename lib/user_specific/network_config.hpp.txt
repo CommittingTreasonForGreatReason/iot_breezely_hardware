@@ -1,4 +1,5 @@
-#define WIFI_SSID "" // input your WiFi SSID here
-#define WIFI_PASSWORD "" // input your WiFi password here
+#define WIFI_SSID ""                        // input your WiFi SSID here
+#define WIFI_PASSWORD ""                    // input your WiFi password here
+#define HOSTNAME "breezely-esp32"           // input a desired hostname for mDNS
 
 // then copy this file and rename this copy to network_config.hpp
