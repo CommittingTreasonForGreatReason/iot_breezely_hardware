@@ -25,14 +25,14 @@ void setup()
     pinMode(WIFI_STATUS_PIN, OUTPUT);
     pinMode(MAGNET_INPUT_PIN, INPUT);
 
-    // Initialize SPIFFS
+    // initialize SPIFFS
     if (!SPIFFS.begin(true))
     {
         Serial.println("An error occurred while mounting SPIFFS");
         return;
     }
 
-    // setup DH11 sensor for air temperature and humidity
+    // setup DHT11 sensor for air temperature and humidity
     dht_sensor_setup();
     delay(2000);
 
@@ -116,5 +116,11 @@ void loop()
         last_pin_status = pin_status;
     }
 
-    delay(500);
+    // print air temperature & humidity
+    float temperature = dht_sensor_get_temperature();
+    float humidity = dht_sensor_get_humidity();
+    print_temperature(temperature);
+    print_humidity(humidity);
+
+    delay(600);
 }
