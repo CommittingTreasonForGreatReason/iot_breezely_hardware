@@ -157,7 +157,7 @@ void on_http_temperature(AsyncWebServerRequest *request)
 {
     Serial.println("Temperature was just requested from client");
     float temperature = dht_sensor_get_temperature();
-    print_temperature(temperature);
+    // print_temperature(temperature);
     request->send_P(200, "text/plain", String(temperature).c_str());
 }
 
@@ -165,7 +165,7 @@ void on_http_humidity(AsyncWebServerRequest *request)
 {
     Serial.println("Humidity was just requested from client");
     float humidity = dht_sensor_get_humidity();
-    print_humidity(humidity);
+    // print_humidity(humidity);
     request->send_P(200, "text/plain", String(humidity).c_str());
 }
 

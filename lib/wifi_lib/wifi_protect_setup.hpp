@@ -1,4 +1,4 @@
-
+#pragma once
 
 // WPS configuration
 #define ESP_WPS_MODE WPS_TYPE_PBC

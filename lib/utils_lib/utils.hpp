@@ -1,3 +1,5 @@
+#pragma once
+
 #define ENTER_ASCII 13
 #define DELETE_ASCII 8
 

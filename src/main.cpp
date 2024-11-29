@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <SPIFFS.h>
 #include <WiFi.h>
+#include <ESPmDNS.h>
 
 // local includes
 #include "utils.hpp"
@@ -16,6 +17,8 @@
 #define MAGNET_STATUS_PIN 22
 #define WIFI_STATUS_PIN 21
 
+#define HOSTNAME "breezely-esp32"           // input a desired hostname for mDNS
+
 // ------------ startup routine ------------ //
 void setup()
 {
@@ -26,12 +29,13 @@ void setup()
     pinMode(MAGNET_INPUT_PIN, INPUT);
 
     // Initialize SPIFFS
-    if (!SPIFFS.begin(true)) {
+    if (!SPIFFS.begin(true))
+    {
         Serial.println("An error occurred while mounting SPIFFS");
         return;
     }
 
-    // setup DH11 sensor for air temperature and humidity    
+    // setup DH11 sensor for air temperature and humidity
     dht_sensor_setup();
     delay(2000);
 
@@ -44,6 +48,17 @@ void setup()
 
     // WIFI setup: Manual (SSID & password hardcoded)
     wifi_manual_setup(); // does a manuel setup by using hardcoded SSID and password (see more under lib/user_specific)
+
+    // start mDNS service
+    if (!MDNS.begin(HOSTNAME))
+    {
+        Serial.println("Error starting mDNS service!");
+        while(true) {}
+    }
+
+    // add http service for mDNS discovery
+    MDNS.addService("http", "tcp", 80);
+    Serial.printf("Access your breezely at http://%s.local \n", HOSTNAME);
 
     Serial.println("setup complete");
     Serial.println("connecting to wifi ...");
@@ -59,32 +74,34 @@ void loop()
     if (!is_connected && WiFi.status() == WL_CONNECTED)
     {
         // As soon as Wifi connection is established print some debug info to serial console
-        Serial.println("wifi connection was made :-)");
-        Serial.print("SSID: ");
+        Serial.println("wifi connection established successfully");
+        Serial.printf("SSID: ");
         Serial.println(WiFi.SSID());
-        Serial.print("gateway ip: ");
+        Serial.print("Gateway IPv4: ");
         Serial.println(WiFi.gatewayIP());
         Serial.println("***********************************");
 
-        Serial.print("host name: ");
+        Serial.print("mDNS Hostname: ");
+        Serial.println(String(HOSTNAME) + ".local");
+        Serial.print("Hostname: ");
         Serial.println(WiFi.getHostname());
-        Serial.print("local ip: ");
+        Serial.print("Local IPv4: ");
         Serial.println(WiFi.localIP());
-        Serial.print("local ipv6: ");
+        Serial.print("Local IPv6: ");
         Serial.println(WiFi.localIPv6());
-        Serial.print("mac address: ");
+        Serial.print("MAC address: ");
         Serial.println(WiFi.macAddress());
 
         // signal wifi connection status on GPIO pin
         digitalWrite(WIFI_STATUS_PIN, HIGH);
         is_connected = true;
 
-        // continue to launch the webinterface 
-        Serial.println("starting web server");
+        // continue to launch the webinterface
+        Serial.println("starting web server ...");
         web_server_setup();
 
         // at last init the http client for communication with cloud backend
-        Serial.println("starting web client");
+        Serial.println("starting web client ...");
         web_client_setup();
     }
     if (WiFi.status() != WL_CONNECTED)
@@ -95,11 +112,13 @@ void loop()
     }
 
     // readout the magnetic reed switch and control output pin accordingly
-    int pin_status = digitalRead(MAGNET_INPUT_PIN); // doesn't work for some reason ...
+    static int last_pin_status = LOW;
+    int pin_status = digitalRead(MAGNET_INPUT_PIN);
     digitalWrite(MAGNET_STATUS_PIN, pin_status);
-
-    Serial.print("pin status: ");
-    Serial.println(pin_status);
+    if(pin_status != last_pin_status) {
+        Serial.printf("updated pin status: %d \n", pin_status);
+        last_pin_status = pin_status;
+    }
 
     delay(500);
 }

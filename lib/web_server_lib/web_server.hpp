@@ -1,3 +1,5 @@
+#pragma once
+
 #define USERNAME_INPUT_NAME "username"
 #define PASSWORD_INPUT_NAME "password"
 
