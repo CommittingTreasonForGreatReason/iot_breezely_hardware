@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Breezely</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header>
+        <h1>Breezely Device Management</h1>
+    </header>
+
+    <!-- navigation bar at the top -->
+    <nav>
+        <a href="index.html">Start</a>
+        <a href="settings.html">Settings</a>
+        <a href="device-info.html">Info</a>
+    </nav>
+
+    <!-- main section in the middle -->
+    <main>
+        <h2>Device Token</h2>
+        <table>
+            <tr>
+                <td>Token</td>
+                <td id="token">...</td>
+            </tr>
+            <!-- ... -->
+        </table>
+        <div id="set_token_div">
+            <h2>Set Token</h2>
+            <form action="/set_token">
+                <p><input type="text" placeholder="token" name="token"></p>
+                <p><input type="submit" value="configure token"></p>
+            </form>
+        </div>
+        <br>
+    </main>
+
+    <!-- execute the script for dynamic updates -->
+    <script src="script.js" onload="fetchAndDisplaySettings()"></script>
+
+    <!-- static section at the bottom for impressum, references, etc. -->
+    <footer>
+        <p>Breezely Management Interface &copy; 2024</p>
+    </footer>
+
+</body>
+
+</html>

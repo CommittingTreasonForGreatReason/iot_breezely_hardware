@@ -3,10 +3,10 @@ const xhttp = new XMLHttpRequest();
 
 // legacy function to handle checkbox change events 
 function toggleCheckbox(element) {
-    if (element.checked) { 
-        xhttp.open("GET", "/gpio_update?output=" + element.id + "&state=1"); 
-    } else { 
-        xhttp.open("GET", "/gpio_update?output=" + element.id + "&state=0"); 
+    if (element.checked) {
+        xhttp.open("GET", "/gpio_update?output=" + element.id + "&state=1");
+    } else {
+        xhttp.open("GET", "/gpio_update?output=" + element.id + "&state=0");
     }
     xhttp.send();
 }
@@ -28,6 +28,20 @@ function fetchAndDisplayDeviceInfo() {
         }
     }
     xhttp.open("GET", "/device_info");
+    xhttp.send();
+}
+
+function fetchAndDisplaySettings() {
+    console.log("fetching settings ...");
+    xhttp.onreadystatechange = function () {
+        if (this.readyState == 4 && this.status == 200) {
+            // display the receceived json encoded device info
+            let response = JSON.parse(this.responseText);
+            document.getElementById("token").innerHTML = response["token"];
+            // ...
+        }
+    }
+    xhttp.open("GET", "/settings");
     xhttp.send();
 }
 
