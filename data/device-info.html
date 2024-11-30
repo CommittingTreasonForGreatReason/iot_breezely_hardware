@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Breezely - Device info</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header>
+        <h1>Breezely Device Management</h1>
+    </header>
+
+    <!-- navigation bar at the top -->
+    <nav>
+        <a href="index.html">Start</a>
+        <a href="#">Settings</a>
+        <a href="device-info.html">Info</a>
+    </nav>
+
+    <main>
+        <h2>Device info</h2>
+
+        <h3>General</h3>
+        <table>
+            <tr><td>Device name</td><td id="device-name">...</td></tr>
+            <tr><td>Uptime</td><td id="uptime">dd hh:mm:ss</td></tr>
+            <!-- ... -->
+        </table>
+        
+        <h3>Network</h3>
+        <table>
+            <tr><td>Wifi SSID</td><td id="wifi-ssid">...</td></tr>
+            <tr><td>IPv4 address</td><td id="ipv4-address">xxx.xxx.xxx.xxx</td></tr>
+            <tr><td>MAC address</td><td id="mac-address">XX:XX:XX:XX:XX:XX</td></tr>
+            <tr><td>Hostname</td><td id="hostname">...</td></tr>
+            <tr><td>Cloud connection status</td><td id="cloud-connection-status">unknown</td></tr>
+            <!-- ... -->
+        </table>
+    </main>
+
+    <!-- execute the script to fetch device info -->
+    <script src="script.js" onload="fetchAndDisplayDeviceInfo()"></script>
+
+    <!-- static section at the bottom for impressum, references, etc. -->
+    <footer>
+        <p>Breezely Management Interface &copy; 2024</p>
+    </footer>
+</body>
+
+</html>

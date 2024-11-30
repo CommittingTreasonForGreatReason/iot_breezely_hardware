@@ -1,0 +1,79 @@
+<!DOCTYPE HTML>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Breezely</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header>
+        <h1>Breezely Device Management</h1>
+    </header>
+
+    <!-- navigation bar at the top -->
+    <nav>
+        <a href="index.html">Start</a>
+        <a href="#">Settings</a>
+        <a href="device-info.html">Info</a>
+    </nav>
+
+    <!-- main section in the middle -->
+    <main>
+        <h2>Live sensor measurements</h2>
+        <table>
+            <tr>
+                <th>Measurement</th>
+                <th>Value</th>
+                <th>Unit</th>
+            </tr>
+            <tr>
+                <td>Window state</td>
+                <td id="window-state">...</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Air temperature</td>
+                <td id="air-temperature">...</td>
+                <td><sup class="units">&deg;C</sup></td>
+            </tr>
+            <tr>
+                <td>Relative air humidity</td>
+                <td id="air-humidity">...</td>
+                <td><sup class="units">&percnt;</sup></td>
+            </tr>
+            <tr>
+                <td>Dummy Counter</td>
+                <td id="dummy">0</td>
+                <td>times</td>
+            </tr>
+            <!-- ... -->
+        </table>
+
+        <h2>Controls</h2>
+        <p>coming soon ...</p>
+        <!-- ... -->
+        <br>
+
+        <h2>Login</h2>
+        <form action="/login">
+            <p><input type="text" placeholder="username" name="username"></p>
+            <p><input type="password" placeholder="password" name="password"></p>
+            <p><input type="submit" value="Login"></p>
+        </form>
+        <br>
+    </main>
+
+    <!-- execute the script for dynamic updates -->
+    <script src="script.js"></script>
+
+    <!-- static section at the bottom for impressum, references, etc. -->
+    <footer>
+        <p>Breezely Management Interface &copy; 2024</p>
+    </footer>
+
+</body>
+
+</html>

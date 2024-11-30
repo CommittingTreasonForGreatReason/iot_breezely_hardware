@@ -1,0 +1,23 @@
+{
+    "files.associations": {
+        "string_view": "cpp",
+        "array": "cpp",
+        "functional": "cpp",
+        "istream": "cpp",
+        "ostream": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp",
+        "typeinfo": "cpp",
+        "initializer_list": "cpp",
+        "optional": "cpp",
+        "system_error": "cpp",
+        "*.tcc": "cpp",
+        "regex": "cpp",
+        "deque": "cpp",
+        "string": "cpp",
+        "unordered_map": "cpp",
+        "unordered_set": "cpp",
+        "vector": "cpp"
+    }
+}
