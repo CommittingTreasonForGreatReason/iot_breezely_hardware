@@ -127,7 +127,7 @@ void loop()
         last_pin_status = pin_status;
     }
 
-    // print air temperature & humidity
+    // publish measurements to the thingsboard cloud
     float temperature = dht_sensor_get_temperature();
     float humidity = dht_sensor_get_humidity();
     if (get_things_board_connected())
