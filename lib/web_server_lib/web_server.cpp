@@ -117,7 +117,7 @@ void on_http_fetch_device_info(AsyncWebServerRequest *request)
     request->send(200, "application/json", jsonResponse);
 }
 
-// callback function for handling fetch device info request
+// callback function for handling fetch settings request
 void on_http_fetch_settings(AsyncWebServerRequest *request)
 {
     Serial.println("--> settings request from client");
@@ -132,9 +132,10 @@ void on_http_fetch_settings(AsyncWebServerRequest *request)
     request->send(200, "application/json", jsonResponse);
 }
 
-// callback for login attempts
+// callback for things board token authorization request
 void on_http_set_token(AsyncWebServerRequest *request)
 {
+    // check for token paramater
     String input_token = "";
     if (request->hasParam(TOKEN_INPUT_NAME))
     {
@@ -144,6 +145,7 @@ void on_http_set_token(AsyncWebServerRequest *request)
     Serial.print("token: ");
     Serial.println(input_token);
 
+    // when token is changed then force to reconnect with new one
     if (cloud_connected)
     {
         // tear down connection if already connected with a token
@@ -155,12 +157,14 @@ void on_http_set_token(AsyncWebServerRequest *request)
     {
         request->send(200, "text/html", "Successfully made cloud connection with token: " + input_token + ".<br><a href=\"/\">Return to Home Page</a>");
         memcpy(configured_token, input_token.c_str(), input_token.length()); // save the actually valid token
+        // ...
         return;
     }
 
     // cloud connection has NOT been made :-(
     request->send(200, "text/html", "Tried to make cloud connection with token: " + input_token + " but failed.<br><a href=\"/\">Return to Home Page</a>");
 }
+
 // setup function for the local async webserver
 int web_server_setup()
 {
@@ -172,11 +176,11 @@ int web_server_setup()
     server.on("/gpio_write", HTTP_GET, on_http_gpio_write);
 
     server.on("/sensor_read", HTTP_GET, on_http_sensor_read);
-    server.on("/device_info", on_http_fetch_device_info);
+    server.on("/device_info", HTTP_GET, on_http_fetch_device_info);
     server.onNotFound(on_http_not_found);
 
     server.on("/set_token", HTTP_GET, on_http_set_token);
-    server.on("/settings", on_http_fetch_settings);
+    server.on("/settings", HTTP_GET, on_http_fetch_settings);
 
     server.begin();
 
