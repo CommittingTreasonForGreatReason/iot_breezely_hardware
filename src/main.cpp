@@ -66,7 +66,7 @@ void setup()
         Serial.println("Successfully started MDNS");
     }
 
-    Serial.printf("Access your breezely at http://%s.local \n", HOSTNAME);
+    Serial.printf("Access your breezely at http://%s \n", HOSTNAME);
 
     Serial.println("setup complete");
     Serial.println("connecting to wifi ...");
@@ -76,12 +76,10 @@ void setup()
 // connection status flag
 bool wifi_is_connected = false;
 
-// test device of paul :)
-#define TOKEN_PAUL_TEST_DEVICE "2aq5mz3oTq3pGyp4f64M"
-
 // ----------- MAIN APPLICATION LOOP ------------ //
 void loop()
 {
+    // detect when wifi connection is established and ready
     if (!wifi_is_connected && WiFi.status() == WL_CONNECTED)
     {
         // As soon as Wifi connection is established print some debug info to serial console
@@ -111,6 +109,7 @@ void loop()
         Serial.println("starting web server ...");
         web_server_setup();
     }
+    // waiting for wifi state ...
     if (WiFi.status() != WL_CONNECTED)
     {
         dot_dot_dot_loop_increment();
