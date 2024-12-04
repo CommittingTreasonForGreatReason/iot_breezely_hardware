@@ -5,3 +5,4 @@
 .pio
 .vscode
 network_config.hpp
+user_config.hpp
