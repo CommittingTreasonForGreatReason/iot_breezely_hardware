@@ -1,5 +1,7 @@
-#include "dht_sensor.hpp"
 #include <DHT.h>
+
+#include "dht_sensor.hpp"
+#include "user_config.hpp"
 
 static DHT dht(DHT_DATA_PIN, DHT11);
 

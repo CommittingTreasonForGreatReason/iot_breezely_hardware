@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Breezely</title>
+    <title>Breezely - Settings</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -22,22 +22,43 @@
 
     <!-- main section in the middle -->
     <main>
-        <h2>Device Token</h2>
+        <h2>Token settings</h2>
         <table>
             <tr>
-                <td>Token</td>
+                <td>Current Token</td>
                 <td id="token">...</td>
             </tr>
-            <!-- ... -->
         </table>
         <div id="set_token_div">
-            <h2>Set Token</h2>
-            <form action="/set_token">
-                <p><input type="text" placeholder="token" name="token"></p>
-                <p><input type="submit" value="configure token"></p>
+            <form action="/set_token" method="get">
+                <input type="text" placeholder="New Token" name="token">
+                <button type="submit">Update Token</button>
             </form>
         </div>
-        <br>
+        <div>
+            <br>
+            <h2>Device Name</h2>
+            <form>
+                <input type="text" placeholder="Device Name" name="device-name">
+                <button type="submit">Change Name</button>
+            </form>
+        </div>
+        <div>
+            <br>
+            <h2>Wifi Connection</h2>
+            <table>
+                <tr>List of available networks</tr>
+            </table>
+        </div>
+        <div>
+            <br>
+            <h2></h2>
+            <form action="#">
+                <p><button type="submit">Restart Device</button></p>
+            </form>
+        </div>
+
+        <!-- more settings might follow here ... -->
     </main>
 
     <!-- execute the script for dynamic updates -->
