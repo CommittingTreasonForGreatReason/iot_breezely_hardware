@@ -116,11 +116,5 @@ void loop()
         last_pin_status = pin_status;
     }
 
-    // print air temperature & humidity
-    float temperature = dht_sensor_get_temperature();
-    float humidity = dht_sensor_get_humidity();
-    print_temperature(temperature);
-    print_humidity(humidity);
-
     delay(600);
 }
