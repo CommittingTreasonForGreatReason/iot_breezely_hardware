@@ -177,11 +177,11 @@ int web_server_setup()
 
     server.on("/sensor_read", HTTP_GET, on_http_sensor_read);
     server.on("/device_info", HTTP_GET, on_http_fetch_device_info);
-    server.onNotFound(on_http_not_found);
 
     server.on("/set_token", HTTP_GET, on_http_set_token);
     server.on("/settings", HTTP_GET, on_http_fetch_settings);
 
+    server.onNotFound(on_http_not_found);
     server.begin();
 
     return 0;
