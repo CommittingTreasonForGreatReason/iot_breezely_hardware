@@ -51,7 +51,6 @@ function setAllDisplayedMeasurements(measurements) {
     document.getElementById("window-state").innerHTML = measurements['window-state'];
     document.getElementById("air-temperature").innerHTML = measurements['air-temperature'];
     document.getElementById("air-humidity").innerHTML = measurements['air-humidity'];
-    document.getElementById("dummy").innerHTML = measurements['dummy'];
     // ...
 }
 

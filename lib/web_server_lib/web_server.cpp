@@ -80,7 +80,6 @@ void on_http_gpio_write(AsyncWebServerRequest *request)
 // callback function for sending sensor measurements to the browser on demand
 void on_http_sensor_read(AsyncWebServerRequest *request)
 {
-    static int dummyCnt = 0;
     Serial.println("--> sensor read request from client");
 
     // store sensor data as dictionary of key-value-pairs
@@ -88,8 +87,6 @@ void on_http_sensor_read(AsyncWebServerRequest *request)
     jsonDoc["window-state"] = digitalRead(18) == HIGH ? "open" : "closed";
     jsonDoc["air-temperature"] = dht_sensor_get_temperature();
     jsonDoc["air-humidity"] = dht_sensor_get_humidity();
-    dummyCnt += 1;
-    jsonDoc["dummy"] = dummyCnt;
     // ...
 
     // send http response with json encoded payload
