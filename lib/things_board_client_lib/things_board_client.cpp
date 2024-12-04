@@ -8,6 +8,7 @@
 #include <WiFi.h>
 
 #include "things_board_client.hpp"
+#include "user_config.hpp"
 
 // Maximum size packets will ever be sent or received by the underlying MQTT client,
 // if the size is to small messages might not be sent or received messages will be discarded

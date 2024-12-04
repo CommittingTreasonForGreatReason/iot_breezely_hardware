@@ -8,6 +8,7 @@
 #include "web_server.hpp"
 #include "dht_sensor.hpp"
 #include "things_board_client.hpp"
+#include "user_config.hpp"
 
 // define http server instance on default port 80
 AsyncWebServer server(80);
@@ -84,7 +85,7 @@ void on_http_sensor_read(AsyncWebServerRequest *request)
 
     // store sensor data as dictionary of key-value-pairs
     JsonDocument jsonDoc;
-    jsonDoc["window-state"] = digitalRead(18) == HIGH ? "open" : "closed";
+    jsonDoc["window-state"] = digitalRead(MAGNET_INPUT_PIN) == HIGH ? "open" : "closed";
     jsonDoc["air-temperature"] = dht_sensor_get_temperature();
     jsonDoc["air-humidity"] = dht_sensor_get_humidity();
     // ...

@@ -11,12 +11,7 @@
 #include "things_board_client.hpp"
 #include "dht_sensor.hpp"
 #include "web_server.hpp"
-
-// GPIO pin mapping definitions
-#define MAGNET_INPUT_PIN 18
-#define WIFI_STATUS_PIN 21
-
-#define HOSTNAME "breezely-esp32" // input a desired hostname for mDNS
+#include "user_config.hpp"
 
 // ------------ startup routine ------------ //
 void setup()
@@ -40,11 +35,13 @@ void setup()
     Serial.begin(115200);
     Serial.println("");
 
-    // WIFI setup: WPS
-    // wifi_wps_setup();
-
-    // WIFI setup: Manual (SSID & password hardcoded)
-    wifi_manual_setup(); // does a manuel setup by using hardcoded SSID and password (see more under lib/user_specific)
+    #ifdef __NO_WPS
+        // manual wifi setup (SSID & password hardcoded)
+        wifi_manual_setup();    // does a manuel setup by using hardcoded SSID and password (see more under lib/user_specific)
+    #else
+        // initial wifi setup via WPS (release mode)
+        wifi_wps_setup();
+    #endif
 
     // start mDNS service
     if (!MDNS.begin(HOSTNAME))
