@@ -8,15 +8,15 @@
 #include "utils.hpp"
 #include "wifi_manual.hpp"
 #include "wifi_protect_setup.hpp"
-#include "web_server.hpp"
-#include "web_client.hpp"
+#include "things_board_client.hpp"
 #include "dht_sensor.hpp"
+#include "web_server.hpp"
 
 // GPIO pin mapping definitions
 #define MAGNET_INPUT_PIN 18
 #define WIFI_STATUS_PIN 21
 
-#define HOSTNAME "breezely-esp32"           // input a desired hostname for mDNS
+#define HOSTNAME "breezely-esp32" // input a desired hostname for mDNS
 
 // ------------ startup routine ------------ //
 void setup()
@@ -50,11 +50,22 @@ void setup()
     if (!MDNS.begin(HOSTNAME))
     {
         Serial.println("Error starting mDNS service!");
-        while(true) {}
+        while (true)
+        {
+        }
     }
 
     // add http service for mDNS discovery
-    MDNS.addService("http", "tcp", 80);
+    bool added_mdns_service = MDNS.addService("http", "tcp", 80);
+    if (!added_mdns_service)
+    {
+        Serial.println("Error starting mDNS service!");
+    }
+    else
+    {
+        Serial.println("Successfully started MDNS");
+    }
+
     Serial.printf("Access your breezely at http://%s.local \n", HOSTNAME);
 
     Serial.println("setup complete");
@@ -63,12 +74,15 @@ void setup()
 // ------------------------------------------------- //
 
 // connection status flag
-bool is_connected = false;
+bool wifi_is_connected = false;
+
+// test device of paul :)
+#define TOKEN_PAUL_TEST_DEVICE "2aq5mz3oTq3pGyp4f64M"
 
 // ----------- MAIN APPLICATION LOOP ------------ //
 void loop()
 {
-    if (!is_connected && WiFi.status() == WL_CONNECTED)
+    if (!wifi_is_connected && WiFi.status() == WL_CONNECTED)
     {
         // As soon as Wifi connection is established print some debug info to serial console
         Serial.println("wifi connection established successfully");
@@ -91,30 +105,35 @@ void loop()
 
         // signal wifi connection status on GPIO pin
         digitalWrite(WIFI_STATUS_PIN, HIGH);
-        is_connected = true;
+        wifi_is_connected = true;
 
         // continue to launch the webinterface
         Serial.println("starting web server ...");
         web_server_setup();
-
-        // at last init the http client for communication with cloud backend
-        Serial.println("starting web client ...");
-        web_client_setup();
     }
     if (WiFi.status() != WL_CONNECTED)
     {
         dot_dot_dot_loop_increment();
         digitalWrite(WIFI_STATUS_PIN, !digitalRead(WIFI_STATUS_PIN));
-        is_connected = false;
+        wifi_is_connected = false;
     }
 
     // readout the magnetic reed switch and control output pin accordingly
     static int last_pin_status = LOW;
     int pin_status = digitalRead(MAGNET_INPUT_PIN);
-    if(pin_status != last_pin_status) {
+    if (pin_status != last_pin_status)
+    {
         Serial.printf("updated pin status: %d \n", pin_status);
         last_pin_status = pin_status;
     }
 
-    delay(600);
+    // publish measurements to the thingsboard cloud
+    float temperature = dht_sensor_get_temperature();
+    float humidity = dht_sensor_get_humidity();
+    if (get_things_board_connected())
+    {
+        things_board_client_routine(temperature, humidity, (pin_status == 1));
+    }
+
+    delay(2000);
 }
