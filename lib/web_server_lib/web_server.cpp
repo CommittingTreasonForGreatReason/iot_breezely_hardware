@@ -83,11 +83,16 @@ void on_http_sensor_read(AsyncWebServerRequest *request)
 {
     Serial.println("--> sensor read request from client");
 
+    float temp = dht_sensor_get_temperature();
+    float hum = dht_sensor_get_humidity();
+    print_temperature(temp);
+    print_humidity(hum);
+
     // store sensor data as dictionary of key-value-pairs
     StaticJsonDocument<120> jsonDoc;
     jsonDoc["window-state"] = digitalRead(MAGNET_INPUT_PIN) == HIGH ? "open" : "closed";
-    jsonDoc["air-temperature"] = dht_sensor_get_temperature();
-    jsonDoc["air-humidity"] = dht_sensor_get_humidity();
+    jsonDoc["air-temperature"] = temp;
+    jsonDoc["air-humidity"] = hum;
     // ...
 
     // send http response with json encoded payload

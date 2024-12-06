@@ -5,6 +5,7 @@
 #define HTTP_OUTPUT_PIN 19
 #define WIFI_STATUS_PIN 21
 #define DHT_DATA_PIN 26
+#define DHTTYPE DHT11       // DHT 11
 
 // networking
 #define __NO_WPS                            // for debugging (comment out for release!)
