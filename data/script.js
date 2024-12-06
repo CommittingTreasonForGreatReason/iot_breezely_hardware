@@ -11,6 +11,7 @@ function toggleCheckbox(element) {
     xhttp.send();
 }
 
+// updates device infos display in the background
 function fetchAndDisplayDeviceInfo() {
     console.log("fetching device info stats ...");
     xhttp.onreadystatechange = function () {
@@ -31,6 +32,7 @@ function fetchAndDisplayDeviceInfo() {
     xhttp.send();
 }
 
+// updates displayed device settings in the background
 function fetchAndDisplaySettings() {
     console.log("fetching settings ...");
     xhttp.onreadystatechange = function () {
@@ -45,26 +47,23 @@ function fetchAndDisplaySettings() {
     xhttp.send();
 }
 
-// method to update all displayed sensor measurements at once by passing a json object
-function setAllDisplayedMeasurements(measurements) {
-    console.log("updating measurment displays ...");
-    document.getElementById("window-state").innerHTML = measurements['window-state'];
-    document.getElementById("air-temperature").innerHTML = measurements['air-temperature'];
-    document.getElementById("air-humidity").innerHTML = measurements['air-humidity'];
-    // ...
-}
-
-// setup periodic background polling of air temperature using AJAX
-let pollingPeriod = 4000;
-setInterval(function () {
+// updates displayed sensor measurements in the background
+function fetchAndDisplaySensorMeasurements() {
     xhttp.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
-
             // display the receceived json encoded measurements on the webpage
             let response = JSON.parse(this.responseText);
-            setAllDisplayedMeasurements(response);
+            console.log("updating measurment displays ...");
+            document.getElementById("window-state").innerHTML = response['window-state'];
+            document.getElementById("air-temperature").innerHTML = response['air-temperature'];
+            document.getElementById("air-humidity").innerHTML = response['air-humidity'];
+            // ...
         }
     };
     xhttp.open("GET", "/sensor_read");
     xhttp.send();
-}, pollingPeriod);
+}
+
+// setup periodic background polling of sensor values using AJAX
+let pollingPeriod = 4000;
+setInterval(fetchAndDisplaySensorMeasurements, pollingPeriod);
