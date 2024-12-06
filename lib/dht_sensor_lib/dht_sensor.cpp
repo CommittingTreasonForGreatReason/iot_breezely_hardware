@@ -25,6 +25,10 @@ float dht_sensor_get_temperature()
         return lastValidTemperature;
     }
 
+    // round to two decimals and store as last valid value
+    value = ((int)round(value * 100.0f)) / 100.0f;
+    lastValidTemperature = value;
+
     return value;
 }
 
@@ -37,6 +41,10 @@ float dht_sensor_get_humidity()
     if(isnan(value) || value < 1.0f || value > 99.0f) {
         return lastValidHumidity;
     }
+
+    // round to two decimals and store as last valid value
+    value = ((int)round(value * 100.0f)) / 100.0f;
+    lastValidHumidity = value;
 
     return value;
 }

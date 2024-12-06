@@ -83,16 +83,13 @@ void on_http_sensor_read(AsyncWebServerRequest *request)
 {
     Serial.println("--> sensor read request from client");
 
-    float temp = dht_sensor_get_temperature();
-    float hum = dht_sensor_get_humidity();
-    print_temperature(temp);
-    print_humidity(hum);
+    // StaticJsonDocument<120> jsonDoc;    // --> marked as deprecated, older version of library contains critical bugs !!!
 
     // store sensor data as dictionary of key-value-pairs
-    StaticJsonDocument<120> jsonDoc;
+    JsonDocument jsonDoc;
     jsonDoc["window-state"] = digitalRead(MAGNET_INPUT_PIN) == HIGH ? "open" : "closed";
-    jsonDoc["air-temperature"] = temp;
-    jsonDoc["air-humidity"] = hum;
+    jsonDoc["air-temperature"] = dht_sensor_get_temperature();
+    jsonDoc["air-humidity"] = dht_sensor_get_humidity();
     // ...
 
     // send http response with json encoded payload
@@ -107,7 +104,9 @@ void on_http_fetch_device_info(AsyncWebServerRequest *request)
 {
     Serial.println("--> device info request from client");
 
-    StaticJsonDocument<200> jsonDoc;
+    // StaticJsonDocument<200> jsonDoc;    // --> marked as deprecated, older version of library contains critical bugs !!!
+
+    JsonDocument jsonDoc;
     jsonDoc["device-name"] = "name";
     jsonDoc["uptime"] = "dd hh:mm:ss";
     jsonDoc["wifi-ssid"] = WiFi.SSID();
@@ -128,7 +127,9 @@ void on_http_fetch_settings(AsyncWebServerRequest *request)
 {
     Serial.println("--> settings request from client");
 
-    StaticJsonDocument<50> jsonDoc;
+    // StaticJsonDocument<60> jsonDoc;    // --> marked as deprecated, older version of library contains critical bugs !!!
+
+    JsonDocument jsonDoc;
     jsonDoc["token"] = (strlen(configured_token) >= 10) ? configured_token : "not configured";
     // ...
 
