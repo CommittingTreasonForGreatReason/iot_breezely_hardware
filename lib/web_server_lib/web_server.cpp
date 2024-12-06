@@ -84,7 +84,7 @@ void on_http_sensor_read(AsyncWebServerRequest *request)
     Serial.println("--> sensor read request from client");
 
     // store sensor data as dictionary of key-value-pairs
-    JsonDocument jsonDoc;
+    StaticJsonDocument<512> jsonDoc;
     jsonDoc["window-state"] = digitalRead(MAGNET_INPUT_PIN) == HIGH ? "open" : "closed";
     jsonDoc["air-temperature"] = dht_sensor_get_temperature();
     jsonDoc["air-humidity"] = dht_sensor_get_humidity();
@@ -102,7 +102,7 @@ void on_http_fetch_device_info(AsyncWebServerRequest *request)
 {
     Serial.println("--> device info request from client");
 
-    JsonDocument jsonDoc;
+    StaticJsonDocument<512> jsonDoc;
     jsonDoc["device-name"] = "name";
     jsonDoc["uptime"] = "dd hh:mm:ss";
     jsonDoc["wifi-ssid"] = WiFi.SSID();
@@ -123,7 +123,7 @@ void on_http_fetch_settings(AsyncWebServerRequest *request)
 {
     Serial.println("--> settings request from client");
 
-    JsonDocument jsonDoc;
+    StaticJsonDocument<512> jsonDoc;
     jsonDoc["token"] = (strlen(configured_token) >= 10) ? configured_token : "not configured";
     // ...
 
