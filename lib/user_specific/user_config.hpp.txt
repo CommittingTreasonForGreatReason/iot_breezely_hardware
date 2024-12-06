@@ -7,7 +7,8 @@
 #define DHT_DATA_PIN 26
 
 // networking
-#define __NO_WPS                            // for debugging (comment out for release!)#define WIFI_SSID ""                        // input your WiFi SSID here
+#define __NO_WPS                            // for debugging (comment out for release!)
+#define WIFI_SSID ""                        // input your WiFi SSID here
 #define WIFI_PASSWORD ""                    // input your WiFi password here
 #define HOSTNAME "breezely-esp32"           // input a desired hostname for mDNS
 #define TB_ACCESS_TOKEN "token"             // input your thingsboard access token here
@@ -28,4 +29,4 @@
 #define TELEMETRY_NAME_HUMIDITY "humidity"
 #define TELEMETRY_NAME_WINDOW_STATUS "window_status"
 
-// then copy this file and rename this copy to network_config.hpp
+// then copy this file and rename this copy to user_config.hpp
