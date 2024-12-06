@@ -83,6 +83,8 @@ void on_http_sensor_read(AsyncWebServerRequest *request)
 {
     Serial.println("--> sensor read request from client");
 
+    // StaticJsonDocument<120> jsonDoc;    // --> marked as deprecated, older version of library contains critical bugs !!!
+
     // store sensor data as dictionary of key-value-pairs
     JsonDocument jsonDoc;
     jsonDoc["window-state"] = digitalRead(MAGNET_INPUT_PIN) == HIGH ? "open" : "closed";
@@ -101,6 +103,8 @@ void on_http_sensor_read(AsyncWebServerRequest *request)
 void on_http_fetch_device_info(AsyncWebServerRequest *request)
 {
     Serial.println("--> device info request from client");
+
+    // StaticJsonDocument<200> jsonDoc;    // --> marked as deprecated, older version of library contains critical bugs !!!
 
     JsonDocument jsonDoc;
     jsonDoc["device-name"] = "name";
@@ -122,6 +126,8 @@ void on_http_fetch_device_info(AsyncWebServerRequest *request)
 void on_http_fetch_settings(AsyncWebServerRequest *request)
 {
     Serial.println("--> settings request from client");
+
+    // StaticJsonDocument<60> jsonDoc;    // --> marked as deprecated, older version of library contains critical bugs !!!
 
     JsonDocument jsonDoc;
     jsonDoc["token"] = (strlen(configured_token) >= 10) ? configured_token : "not configured";
