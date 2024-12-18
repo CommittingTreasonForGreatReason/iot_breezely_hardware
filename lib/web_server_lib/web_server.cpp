@@ -14,11 +14,21 @@
 AsyncWebServer server(80);
 
 char configured_token[32] = {0};
+char configured_device_name[32] = {0};
 bool cloud_connected = false;
 
 String outputState(int output)
 {
     return digitalRead(output) ? "checked" : "";
+}
+
+void send_http_response_json_format(AsyncWebServerRequest *request, int code, JsonDocument *jsonDoc, bool printResponse = false)
+{
+    String jsonResponse;
+    serializeJson(*jsonDoc, jsonResponse);
+    request->send(code, "application/json", jsonResponse);
+    if (printResponse)
+        Serial.println(jsonResponse);
 }
 
 // callback for http requests on undefined routes
@@ -93,10 +103,7 @@ void on_http_sensor_read(AsyncWebServerRequest *request)
     // ...
 
     // send http response with json encoded payload
-    String jsonResponse;
-    serializeJson(jsonDoc, jsonResponse);
-    Serial.println(jsonResponse);
-    request->send(200, "application/json", jsonResponse);
+    send_http_response_json_format(request, 200, &jsonDoc, true);
 }
 
 // callback function for handling fetch device info request
@@ -116,10 +123,7 @@ void on_http_fetch_device_info(AsyncWebServerRequest *request)
     jsonDoc["cloud-connection-status"] = cloud_connected ? "online" : "offline";
     // ...
 
-    // send http response with json encoded payload
-    String jsonResponse;
-    serializeJson(jsonDoc, jsonResponse);
-    request->send(200, "application/json", jsonResponse);
+    send_http_response_json_format(request, 200, &jsonDoc);
 }
 
 // callback function for handling fetch settings request
@@ -131,12 +135,10 @@ void on_http_fetch_settings(AsyncWebServerRequest *request)
 
     JsonDocument jsonDoc;
     jsonDoc["token"] = (strlen(configured_token) >= 10) ? configured_token : "not configured";
+    jsonDoc["device-name"] = (strlen(configured_device_name) >= 5) ? configured_device_name : "not set";
     // ...
 
-    // send http response with json encoded payload
-    String jsonResponse;
-    serializeJson(jsonDoc, jsonResponse);
-    request->send(200, "application/json", jsonResponse);
+    send_http_response_json_format(request, 200, &jsonDoc);
 }
 
 // callback for things board token authorization request
@@ -172,6 +174,39 @@ void on_http_set_token(AsyncWebServerRequest *request)
     request->send(200, "text/html", "Tried to make cloud connection with token: " + input_token + " but failed.<br><a href=\"/\">Return to Home Page</a>");
 }
 
+// callback for things board token authorization request
+void on_http_set_device_name(AsyncWebServerRequest *request)
+{
+    // check for token paramater
+    String input_device_name = "";
+    if (request->hasParam(DEVICE_NAME_INPUT_NAME))
+    {
+        input_device_name = request->getParam(DEVICE_NAME_INPUT_NAME)->value();
+    }
+
+    Serial.print("device_name: ");
+    Serial.println(input_device_name);
+
+    // when token is changed then force to reconnect with new one
+    if (cloud_connected)
+    {
+        // tear down connection if already connected with a token
+        things_board_client_teardown();
+    }
+
+    cloud_connected = things_board_client_setup_provisioning(input_device_name.c_str()) >= 0;
+    if (cloud_connected) // cloud connection has been made :-)
+    {
+        request->send(200, "text/html", "Successfully made cloud connection with device name: " + input_device_name + ".<br><a href=\"/\">Return to Home Page</a>");
+        memcpy(configured_device_name, input_device_name.c_str(), input_device_name.length()); // save the actually valid token
+        // ...
+        return;
+    }
+
+    // cloud connection has NOT been made :-(
+    request->send(200, "text/html", "Tried to make cloud connection with device name: " + input_device_name + " but failed.<br><a href=\"/\">Return to Home Page</a>");
+}
+
 // setup function for the local async webserver
 int web_server_setup()
 {
@@ -186,6 +221,7 @@ int web_server_setup()
     server.on("/device_info", HTTP_GET, on_http_fetch_device_info);
 
     server.on("/set_token", HTTP_GET, on_http_set_token);
+    server.on("/set_device_name", HTTP_GET, on_http_set_device_name);
     server.on("/settings", HTTP_GET, on_http_fetch_settings);
 
     server.onNotFound(on_http_not_found);
