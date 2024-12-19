@@ -22,27 +22,29 @@
 
     <!-- main section in the middle -->
     <main>
-        <h2>Token settings</h2>
+        <h2>Device settings</h2>
         <table>
             <tr>
                 <td>Current Token</td>
                 <td id="token">...</td>
             </tr>
         </table>
-        <div id="set_token_div">
-            <form action="/set_token" method="get">
-                <input type="text" placeholder="New Token" name="token">
-                <button type="submit">Update Token</button>
-            </form>
-        </div>
-        <div>
-            <br>
-            <h2>Device Name</h2>
-            <form action="/set_device_name" method="get">
-                <input type="text" placeholder="Device Name" name="device-name">
-                <button type="submit">Change Name</button>
-            </form>
-        </div>
+        <form action="/set_token" method="get">
+            <input type="text" placeholder="New Token" name="token">
+            <button type="submit">Update Token</button>
+        </form>
+        <h2>Device Name</h2>
+        <table>
+            <tr>
+                <td>Current Device Name</td>
+                <td id="device_name">...</td>
+            </tr>
+        </table>
+        <form action="/set_device_name" method="get">
+            <input type="text" placeholder="Device Name" name="device-name">
+            <button type="submit">Change Name</button>
+        </form>
+
         <div>
             <br>
             <h2>Wifi Connection</h2>

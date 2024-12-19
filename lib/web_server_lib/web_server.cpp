@@ -136,7 +136,7 @@ void on_http_fetch_settings(AsyncWebServerRequest *request)
 
     JsonDocument jsonDoc;
     jsonDoc["token"] = (strlen(configured_token) >= 10) ? configured_token : "not configured";
-    jsonDoc["device-name"] = (strlen(configured_device_name) >= 5) ? configured_device_name : "not set";
+    jsonDoc["device_name"] = (strlen(configured_device_name) >= 5) ? configured_device_name : "not set";
     // ...
 
     send_http_response_json_format(request, 200, &jsonDoc);

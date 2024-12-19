@@ -40,6 +40,7 @@ function fetchAndDisplaySettings() {
             // display the receceived json encoded device info
             let response = JSON.parse(this.responseText);
             document.getElementById("token").innerHTML = response["token"];
+            document.getElementById("device_name").innerHTML = response["device_name"];
             // ...
         }
     }

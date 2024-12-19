@@ -201,7 +201,8 @@ int things_board_client_setup_provisioning(char const *device_name)
     provisionRequestSent = prov.Provision_Request(provisionCallback);
     if (provisionRequestSent)
         Serial.println("send provision request");*/
-    return provisionRequestSent ? 0 : -1;
+    // return provisionRequestSent ? 0 : -1;
+    return 0;
 }
 
 // disconnect routine
