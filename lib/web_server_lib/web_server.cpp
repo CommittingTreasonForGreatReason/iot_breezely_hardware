@@ -9,6 +9,7 @@
 #include "dht_sensor.hpp"
 #include "things_board_client.hpp"
 #include "user_config.hpp"
+#include "logger.hpp"
 
 // define http server instance on default port 80
 AsyncWebServer server(80);
@@ -28,7 +29,9 @@ void send_http_response_json_format(AsyncWebServerRequest *request, int code, Js
     serializeJson(*jsonDoc, jsonResponse);
     request->send(code, "application/json", jsonResponse);
     if (printResponse)
-        Serial.println(jsonResponse);
+    {
+        serial_logger_print(jsonResponse.c_str(), LOG_LEVEL_DEBUG);
+    }
 }
 
 // callback for http requests on undefined routes
@@ -52,11 +55,11 @@ void on_http_login(AsyncWebServerRequest *request)
     {
         input_password = request->getParam(PASSWORD_INPUT_NAME)->value();
     }
-
-    Serial.print("username: ");
-    Serial.println(input_username);
-    Serial.print("password: ");
-    Serial.println(input_password);
+    char buffer[64] = {0};
+    sprintf(buffer, "username: %s", input_username);
+    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
+    sprintf(buffer, "password: %s", input_password);
+    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
 
     request->send(200, "text/html", "HTTP GET request with user login send to esp32 (username: " + input_username + " | password: " + input_password + ")<br><a href=\"/\">Return to Home Page</a>");
 }
@@ -79,11 +82,9 @@ void on_http_gpio_write(AsyncWebServerRequest *request)
         state_message = "No message sent";
     }
 
-    // print info to serial console
-    Serial.print("GPIO: ");
-    Serial.print(output_message);
-    Serial.print(" -> ");
-    Serial.println(state_message);
+    char buffer[64] = {0};
+    sprintf(buffer, "GPIO: %s -> %s", output_message, state_message);
+    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
 
     request->send(200, "text/plain", "OK");
 }
@@ -91,7 +92,7 @@ void on_http_gpio_write(AsyncWebServerRequest *request)
 // callback function for sending sensor measurements to the browser on demand
 void on_http_sensor_read(AsyncWebServerRequest *request)
 {
-    Serial.println("--> sensor read request from client");
+    serial_logger_print("-- > sensor read request from client", LOG_LEVEL_DEBUG);
 
     // StaticJsonDocument<120> jsonDoc;    // --> marked as deprecated, older version of library contains critical bugs !!!
 
@@ -151,8 +152,9 @@ void on_http_set_token(AsyncWebServerRequest *request)
         input_token = request->getParam(TOKEN_INPUT_NAME)->value();
     }
 
-    Serial.print("token: ");
-    Serial.println(input_token);
+    char buffer[64] = {0};
+    sprintf(buffer, "token: %s", input_token);
+    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
 
     // when token is changed then force to reconnect with new one
     if (cloud_connected)
@@ -184,8 +186,9 @@ void on_http_set_device_name(AsyncWebServerRequest *request)
         input_device_name = request->getParam(DEVICE_NAME_INPUT_NAME)->value();
     }
 
-    Serial.print("device_name: ");
-    Serial.println(input_device_name);
+    char buffer[64] = {0};
+    sprintf(buffer, "device_name: %s", input_device_name);
+    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
 
     // when token is changed then force to reconnect with new one
     if (cloud_connected)

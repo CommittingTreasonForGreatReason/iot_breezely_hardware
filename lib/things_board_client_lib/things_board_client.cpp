@@ -6,10 +6,10 @@
 #include <Shared_Attribute_Update.h>
 #include <ThingsBoard.h>
 #include <WiFi.h>
-#include <Provision.h>
 
 #include "things_board_client.hpp"
 #include "user_config.hpp"
+#include "logger.hpp"
 
 constexpr char CREDENTIALS_TYPE[] = "credentialsType";
 constexpr char CREDENTIALS_VALUE[] = "credentialsValue";
@@ -40,13 +40,13 @@ WiFiClient wifiClient;
 // Initalize the Mqtt client instance
 Arduino_MQTT_Client mqttClient(wifiClient);
 
-Provision<> prov;
+/*
 const std::array<IAPI_Implementation *, 1U> apis = {
-    &prov};
+    &prov};*/
 bool provisionRequestSent = false;
 bool provisionResponseProcessed = false;
 
-ThingsBoard tb(mqttClient, MAX_MESSAGE_SIZE, MAX_MESSAGE_SIZE, Default_Max_Stack_Size, apis);
+ThingsBoard tb(mqttClient, MAX_MESSAGE_SIZE, MAX_MESSAGE_SIZE, Default_Max_Stack_Size);
 
 bool things_board_connected = false;
 constexpr uint64_t REQUEST_TIMEOUT_MICROSECONDS = 5000U * 1000U;
@@ -85,7 +85,9 @@ void processProvisionResponse(const JsonDocument &data)
     }
     else
     {
-        Serial.printf("Unexpected provision credentialsType: (%s)\n", data[CREDENTIALS_TYPE].as<const char *>());
+        char buffer[64] = {0};
+        sprintf(buffer, "Unexpected provision credentialsType: (%s)\n", data[CREDENTIALS_TYPE].as<const char *>());
+        serial_logger_print(buffer, LOG_LEVEL_ERROR);
         return;
     }
 
@@ -109,9 +111,13 @@ void things_board_client_routine(float temperature, float humidity, bool window_
     tb.sendTelemetryData(TELEMETRY_NAME_WINDOW_STATUS, window_status);
 
     // also print to the serial console for debugging purposes
-    // Serial.printf("sent %s: %f \n", TELEMETRY_NAME_TEMPERATURE, temperature);
-    // Serial.printf("sent %s: %f \n", TELEMETRY_NAME_HUMIDITY, humidity);
-    // Serial.printf("sent %s: %f \n", TELEMETRY_NAME_WINDOW_STATUS, window_status);
+    char buffer[64] = {0};
+    sprintf(buffer, "sent telemetry %s: %f", TELEMETRY_NAME_TEMPERATURE, temperature);
+    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
+    sprintf(buffer, "sent telemetry %s: %f", TELEMETRY_NAME_HUMIDITY, humidity);
+    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
+    sprintf(buffer, "sent telemetry %s: %f", TELEMETRY_NAME_WINDOW_STATUS, window_status);
+    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
 }
 
 // setup function to establish connection
@@ -120,29 +126,38 @@ int things_board_client_setup(char const *device_token)
     // validate present token
     if (strlen(device_token) < 10)
     {
-        Serial.printf("invalid token length: %d", device_token);
+        char buffer[64] = {0};
+        sprintf(buffer, "invalid token length: %d", device_token);
+        serial_logger_print(buffer, LOG_LEVEL_ERROR);
         return -1;
     }
 
     // only in disconnected state a reconnection attempt can be made
     if (tb.connected())
     {
-        Serial.println("Things Board already connected");
+        char buffer[64] = "Things Board already connected";
+        serial_logger_print(buffer, LOG_LEVEL_ERROR);
         return -1;
     }
 
     // attempt to connect to the ThingsBoard
-    Serial.printf("Connecting to: %s", THINGSBOARD_SERVER);
-    Serial.printf(" with token %s", device_token);
+    char buffer[64] = {0};
+    sprintf(buffer, "Connecting to: %s with token %s", THINGSBOARD_SERVER, device_token);
+    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
+
     if (!tb.connect(THINGSBOARD_SERVER, device_token, THINGSBOARD_PORT))
     {
-        Serial.println("Failed to connect");
+        char buffer[64] = {0};
+        sprintf(buffer, "Failed to connect to: %s", THINGSBOARD_SERVER);
+        serial_logger_print(buffer, LOG_LEVEL_ERROR);
         return -1;
     }
     else
     {
-        Serial.printf("Successfully connected with %s\n", THINGSBOARD_SERVER);
         things_board_connected = true;
+        char buffer[64] = {0};
+        sprintf(buffer, "Successfully connected with %s", THINGSBOARD_SERVER);
+        serial_logger_print(buffer, LOG_LEVEL_DEBUG);
     }
     // Sending a MAC address as an attribute
     tb.sendAttributeData("macAddress", WiFi.macAddress().c_str());
@@ -154,31 +169,38 @@ int things_board_client_setup_provisioning(char const *device_name)
     // only in disconnected state a reconnection attempt can be made
     if (tb.connected())
     {
-        Serial.println("Things Board already connected");
+        char buffer[64] = "Things Board already connected";
+        serial_logger_print(buffer, LOG_LEVEL_ERROR);
         return -1;
     }
 
     // attempt to connect to the ThingsBoard
-    Serial.printf("Connecting to: %s", THINGSBOARD_SERVER);
+    char buffer[64] = {0};
+    sprintf(buffer, "Connecting to: %s with device name %s", THINGSBOARD_SERVER, device_name);
+    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
     if (!tb.connect(THINGSBOARD_SERVER, PROV_ACCESS_TOKEN, THINGSBOARD_PORT))
     {
-        Serial.println("Failed to connect");
+        char buffer[64] = {0};
+        sprintf(buffer, "Failed to connect to: %s", THINGSBOARD_SERVER);
+        serial_logger_print(buffer, LOG_LEVEL_ERROR);
         return -1;
     }
     else
     {
-        Serial.printf("Successfully connected with %s\n", THINGSBOARD_SERVER);
+        char buffer[64] = {0};
+        sprintf(buffer, "Successfully connected with %s", THINGSBOARD_SERVER);
+        serial_logger_print(buffer, LOG_LEVEL_DEBUG);
         things_board_connected = true;
     }
     // Sending a MAC address as an attribute
     tb.sendAttributeData("macAddress", WiFi.macAddress().c_str());
     // const Provision_Callback provisionCallback(Access_Token(), &processProvisionResponse, PROVISION_DEVICE_KEY, PROVISION_DEVICE_SECRET, device_name, REQUEST_TIMEOUT_MICROSECONDS, &requestTimedOut); // doesn't work :(
-
+    /*
     const Provision_Callback provisionCallback(Device_Access_Token(), &processProvisionResponse, PROVISION_DEVICE_KEY, PROVISION_DEVICE_SECRET, HARDCODED_TOKEN, device_name, REQUEST_TIMEOUT_MICROSECONDS, &requestTimedOut);
 
     provisionRequestSent = prov.Provision_Request(provisionCallback);
     if (provisionRequestSent)
-        Serial.println("send provision request");
+        Serial.println("send provision request");*/
     return provisionRequestSent ? 0 : -1;
 }
 
