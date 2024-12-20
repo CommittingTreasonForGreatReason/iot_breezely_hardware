@@ -3,6 +3,7 @@
 
 #include "wifi_protect_setup.hpp"
 #include "esp_wps.h"
+#include "logger.hpp"
 
 void wps_start()
 {
