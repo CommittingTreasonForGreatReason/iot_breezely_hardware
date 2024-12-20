@@ -127,6 +127,7 @@ void loop()
         case State::WAITING_ON_WIFI:
         {
             // ENTRY
+            serial_logger_print("[FSM] Waiting for Wifi state", LOG_LEVEL_DEBUG);
             // ...
 
             // DO
@@ -163,6 +164,7 @@ void loop()
         case State::ONLY_SERVER_IDLE:
         {
             // ENTRY
+            serial_logger_print("[FSM] Only server idle state", LOG_LEVEL_DEBUG);
             // ...
 
             // DO
@@ -191,11 +193,13 @@ void loop()
                         wifi_wps_setup();
                     #endif
                     current_state = State::WAITING_ON_WIFI;
+                    // break;
                 }
                 else if (get_things_board_connected())
                 {
                     serial_logger_print("~~~ CLOUD CONNECTION MADE ~~~", LOG_LEVEL_INFO);
                     current_state = State::CLOUD_CLIENT_IDLE;
+                    // break;
                 }
                 delay(2000);
             }
@@ -206,6 +210,7 @@ void loop()
         case State::CLOUD_CLIENT_IDLE:
         {
             // ENTRY
+            serial_logger_print("[FSM] Cloud client idle state", LOG_LEVEL_DEBUG);
             delta_time_ms = 1000;
             things_board_routine_deadline_ms = esp_timer_get_time() / 1000 + delta_time_ms;
 
@@ -245,11 +250,13 @@ void loop()
             // ...
 
             // DO
-            serial_logger_print("\nFSM has unknown state!", LOG_LEVEL_WARNING);
+            serial_logger_print("\n[FSM] unknown state!", LOG_LEVEL_WARNING);
 
             // EXIT
             // ...
             break;
         }
     }
+
+    delay(100);
 }
