@@ -68,23 +68,26 @@ int start_mDNS_timeout_us(int64_t timeout_us)
     return 0;
 }
 
-// States of state machine
-enum State
+// State definitions for FSM
+enum class State
 {
     WAITING_ON_WIFI,  // wifi connecteion yet to be made
     ONLY_SERVER_IDLE, // wifi conection made! but only the local server is active (no connection to cloud)
     CLOUD_CLIENT_IDLE // server active and cloud connected
 };
 
-State current_state = WAITING_ON_WIFI;
+// set initial state 
+State current_state = State::WAITING_ON_WIFI;
 
 // ------------ startup routine ------------ //
 void setup()
 {
-    current_state = WAITING_ON_WIFI;
+    // current_state = State::WAITING_ON_WIFI;
+
     // configure GPIO pins
     pinMode(WIFI_STATUS_PIN, OUTPUT);
     pinMode(MAGNET_INPUT_PIN, INPUT);
+
     // setup DHT11 sensor for air temperature and humidity
     dht_sensor_setup();
 
@@ -113,16 +116,21 @@ void setup()
 int64_t delta_time_ms = 1000;
 int64_t things_board_routine_deadline_ms = esp_timer_get_time() / 1000 + delta_time_ms;
 char buffer[128] = {0};
+
 // ----------- MAIN APPLICATION LOOP ------------ //
 void loop()
 {
     switch (current_state)
     {
-    case WAITING_ON_WIFI:
+    case State::WAITING_ON_WIFI:
+    {
         // ENTRY
+        // ...
+
         // DO
         while (WiFi.status() != WL_CONNECTED)
         {
+            // blink the wifi status LED (green) while waiting for connection
             dot_dot_dot_loop_increment();
             digitalWrite(WIFI_STATUS_PIN, !digitalRead(WIFI_STATUS_PIN));
             delay(1000);
@@ -143,47 +151,59 @@ void loop()
         sprintf(buffer, "Access your breezely at http://%s ", HOSTNAME);
         serial_logger_print(buffer, LOG_LEVEL_INFO);
 
-        current_state = ONLY_SERVER_IDLE;
+        current_state = State::ONLY_SERVER_IDLE;
         break;
-    case ONLY_SERVER_IDLE:
+    }
+    
+    case State::ONLY_SERVER_IDLE:
+    {
         // ENTRY
+        // ...
+
         // DO
         while (true)
         {
             // readout the magnetic reed switch and control output pin accordingly
             static int last_pin_status = LOW;
             int pin_status = digitalRead(MAGNET_INPUT_PIN);
+            
+            // log window state changes to the serial monitor
             if (pin_status != last_pin_status)
             {
                 sprintf(buffer, "updated pin status: %d", pin_status);
                 serial_logger_print(buffer, LOG_LEVEL_DEBUG);
                 last_pin_status = pin_status;
             }
+
             // EXIT
             if (WiFi.status() != WL_CONNECTED)
             {
-#ifdef __NO_WPS
-                // manual wifi setup (SSID & password hardcoded)
-                wifi_manual_setup(); // does a manuel setup by using hardcoded SSID and password (see more under lib/user_specific)
-#else
-                // initial wifi setup via WPS (release mode)
-                wifi_wps_setup();
-#endif
-                current_state = WAITING_ON_WIFI;
+                #ifdef __NO_WPS
+                    // manual wifi setup (SSID & password hardcoded)
+                    wifi_manual_setup(); // does a manuel setup by using hardcoded SSID and password (see more under lib/user_specific)
+                #else
+                    // initial wifi setup via WPS (release mode)
+                    wifi_wps_setup();
+                #endif
+                current_state = State::WAITING_ON_WIFI;
             }
             else if (get_things_board_connected())
             {
                 serial_logger_print("~~~ CLOUD CONNECTION MADE ~~~", LOG_LEVEL_INFO);
-                current_state = CLOUD_CLIENT_IDLE;
+                current_state = State::CLOUD_CLIENT_IDLE;
             }
             delay(2000);
         }
-
+        
         break;
-    case CLOUD_CLIENT_IDLE:
+    }
+
+    case State::CLOUD_CLIENT_IDLE:
+    {
         // ENTRY
         delta_time_ms = 1000;
         things_board_routine_deadline_ms = esp_timer_get_time() / 1000 + delta_time_ms;
+
         // DO
         while (get_things_board_connected())
         {
@@ -196,6 +216,7 @@ void loop()
                 serial_logger_print(buffer, LOG_LEVEL_DEBUG);
                 last_pin_status = pin_status;
             }
+
             float temperature = dht_sensor_get_temperature();
             float humidity = dht_sensor_get_humidity();
             if (things_board_routine_deadline_ms <= esp_timer_get_time())
@@ -205,10 +226,14 @@ void loop()
             }
             delay(100);
         }
+
         // cloud connection lost
-        current_state = ONLY_SERVER_IDLE;
+        current_state = State::ONLY_SERVER_IDLE;
+        
         // EXIT
         break;
+    }
+        
     default:
         // ENTRY
         // DO
