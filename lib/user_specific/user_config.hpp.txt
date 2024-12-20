@@ -25,6 +25,8 @@
 // things board specific env parameters
 #define THINGSBOARD_SERVER "server-malte.duckdns.org"
 #define THINGSBOARD_PORT 5869 // 1883U
+#define PROVISION_DEVICE_KEY "<prov-key>"                   // can be found in breezely device profile on thingboard admin page
+#define PROVISION_DEVICE_SECRET "<prov-secret>"             // " "
 
 // name definitions of the measurement datapoints 
 #define TELEMETRY_NAME_TEMPERATURE "temperature"
