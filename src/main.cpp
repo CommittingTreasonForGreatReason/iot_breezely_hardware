@@ -82,8 +82,6 @@ State current_state = State::WAITING_ON_WIFI;
 // ------------ startup routine ------------ //
 void setup()
 {
-    // current_state = State::WAITING_ON_WIFI;
-
     // configure GPIO pins
     pinMode(WIFI_STATUS_PIN, OUTPUT);
     pinMode(MAGNET_INPUT_PIN, INPUT);
@@ -192,15 +190,15 @@ void loop()
                         // initial wifi setup via WPS (release mode)
                         wifi_wps_setup();
                     #endif
-                    
+
                     current_state = State::WAITING_ON_WIFI;
-                    break;
+                    // break;
                 }
                 else if (get_things_board_connected())
                 {
                     serial_logger_print("~~~ CLOUD CONNECTION MADE ~~~", LOG_LEVEL_INFO);
                     current_state = State::CLOUD_CLIENT_IDLE;
-                    break;
+                    // break;
                 }
                 delay(2000);
             }

@@ -13,10 +13,9 @@
 
 // define http server instance on default port 80
 AsyncWebServer server(80);
-
-char configured_token[32] = {0};
-char configured_device_name[32] = {0};
 bool cloud_connected = false;
+
+String device_name = "";
 
 String outputState(int output)
 {
@@ -115,7 +114,7 @@ void on_http_fetch_device_info(AsyncWebServerRequest *request)
     // StaticJsonDocument<200> jsonDoc;    // --> marked as deprecated, older version of library contains critical bugs !!!
 
     JsonDocument jsonDoc;
-    jsonDoc["device-name"] = "name";
+    jsonDoc["device-name"] = device_name;
     jsonDoc["uptime"] = "dd hh:mm:ss";
     jsonDoc["wifi-ssid"] = WiFi.SSID();
     jsonDoc["ipv4-address"] = WiFi.localIP().toString();
@@ -135,8 +134,8 @@ void on_http_fetch_settings(AsyncWebServerRequest *request)
     // StaticJsonDocument<60> jsonDoc;    // --> marked as deprecated, older version of library contains critical bugs !!!
 
     JsonDocument jsonDoc;
-    jsonDoc["token"] = (strlen(configured_token) >= 10) ? configured_token : "not configured";
-    jsonDoc["device_name"] = (strlen(configured_device_name) >= 5) ? configured_device_name : "not set";
+    jsonDoc["token"] = (get_access_token().length() >= 10) ? get_access_token() : "not configured";
+    jsonDoc["device_name"] = (device_name.length() >= 5) ? device_name : "not set";
     // ...
 
     send_http_response_json_format(request, 200, &jsonDoc);
@@ -167,7 +166,8 @@ void on_http_set_token(AsyncWebServerRequest *request)
     if (cloud_connected) // cloud connection has been made :-)
     {
         request->send(200, "text/html", "Successfully made cloud connection with token: " + input_token + ".<br><a href=\"/\">Return to Home Page</a>");
-        memcpy(configured_token, input_token.c_str(), input_token.length()); // save the actually valid token
+        set_access_token(input_token);      // save the actually valid token
+        // memcpy(configured_token, input_token.c_str(), input_token.length()); 
         // ...
         return;
     }
@@ -201,8 +201,7 @@ void on_http_set_device_name(AsyncWebServerRequest *request)
     if (cloud_connected) // cloud connection has been made :-)
     {
         request->send(200, "text/html", "Successfully made cloud connection with device name: " + input_device_name + ".<br><a href=\"/\">Return to Home Page</a>");
-        memcpy(configured_device_name, input_device_name.c_str(), input_device_name.length()); // save the actually valid token
-        // ...
+        device_name = input_device_name;
         return;
     }
 
