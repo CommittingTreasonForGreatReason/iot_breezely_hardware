@@ -104,7 +104,7 @@ void on_http_sensor_read(AsyncWebServerRequest *request)
     // ...
 
     // send http response with json encoded payload
-    send_http_response_json_format(request, 200, &jsonDoc, true);
+    send_http_response_json_format(request, 200, &jsonDoc);
 }
 
 // callback function for handling fetch device info request

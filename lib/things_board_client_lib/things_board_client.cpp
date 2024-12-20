@@ -40,16 +40,16 @@ WiFiClient wifiClient;
 // Initalize the Mqtt client instance
 Arduino_MQTT_Client mqttClient(wifiClient);
 
-/*
-const std::array<IAPI_Implementation *, 1U> apis = {
-    &prov};*/
-bool provisionRequestSent = false;
-bool provisionResponseProcessed = false;
-
+// Initalize thingsboard instance based on mqtt client
 ThingsBoard tb(mqttClient, MAX_MESSAGE_SIZE, MAX_MESSAGE_SIZE, Default_Max_Stack_Size);
 
 bool things_board_connected = false;
 constexpr uint64_t REQUEST_TIMEOUT_MICROSECONDS = 5000U * 1000U;
+
+// device provisioning related stuff
+bool provisionRequestSent = false;
+bool provisionResponseProcessed = false;
+/* const std::array<IAPI_Implementation *, 1U> apis = { &prov }; */
 
 void requestTimedOut()
 {
@@ -120,7 +120,7 @@ void things_board_client_routine(float temperature, float humidity, bool window_
     serial_logger_print(buffer, LOG_LEVEL_DEBUG);
 }
 
-// setup function to establish connection
+// setup function to establish connection with existing device token (provision already completed)
 int things_board_client_setup(char const *device_token)
 {
     // validate present token
@@ -164,6 +164,7 @@ int things_board_client_setup(char const *device_token)
     return 0;
 }
 
+// setup function to establish connection for new device (initial device provision process)
 int things_board_client_setup_provisioning(char const *device_name)
 {
     // only in disconnected state a reconnection attempt can be made
