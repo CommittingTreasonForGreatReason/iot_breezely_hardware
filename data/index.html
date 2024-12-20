@@ -16,7 +16,7 @@
     <!-- navigation bar at the top -->
     <nav>
         <a href="index.html">Start</a>
-        <a href="#">Settings</a>
+        <a href="settings.html">Settings</a>
         <a href="device-info.html">Info</a>
     </nav>
 
@@ -44,11 +44,6 @@
                 <td id="air-humidity">...</td>
                 <td><sup class="units">&percnt;</sup></td>
             </tr>
-            <tr>
-                <td>Dummy Counter</td>
-                <td id="dummy">0</td>
-                <td>times</td>
-            </tr>
             <!-- ... -->
         </table>
 
@@ -57,17 +52,19 @@
         <!-- ... -->
         <br>
 
+        <!--
         <h2>Login</h2>
-        <form action="/login">
+        <form action="/login" method="get">
             <p><input type="text" placeholder="username" name="username"></p>
             <p><input type="password" placeholder="password" name="password"></p>
             <p><input type="submit" value="Login"></p>
         </form>
+        -->
         <br>
     </main>
 
     <!-- execute the script for dynamic updates -->
-    <script src="script.js"></script>
+    <script src="script.js" onload="fetchAndDisplaySensorMeasurements()"></script>
 
     <!-- static section at the bottom for impressum, references, etc. -->
     <footer>

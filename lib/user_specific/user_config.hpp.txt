@@ -1,0 +1,33 @@
+#pragma once
+
+// gpio
+#define MAGNET_INPUT_PIN 18
+#define HTTP_OUTPUT_PIN 19
+#define WIFI_STATUS_PIN 21
+#define DHT_DATA_PIN 26
+#define DHTTYPE DHT11       // DHT 11
+
+// networking
+#define __NO_WPS                            // for debugging (comment out for release!)
+#define WIFI_SSID ""                        // input your WiFi SSID here
+#define WIFI_PASSWORD ""                    // input your WiFi password here
+#define HOSTNAME "breezely-esp32"           // input a desired hostname for mDNS
+#define TB_ACCESS_TOKEN "token"             // input your thingsboard access token here
+
+// webserver
+#define USERNAME_INPUT_NAME "username"
+#define PASSWORD_INPUT_NAME "password"
+#define TOKEN_INPUT_NAME "token"
+#define OUTPUT_NAME "output"
+#define STATE_NAME "state"
+
+// things board specific env parameters
+#define THINGSBOARD_SERVER "server-malte.duckdns.org"
+#define THINGSBOARD_PORT 5869 // 1883U
+
+// name definitions of the measurement datapoints 
+#define TELEMETRY_NAME_TEMPERATURE "temperature"
+#define TELEMETRY_NAME_HUMIDITY "humidity"
+#define TELEMETRY_NAME_WINDOW_STATUS "window_status"
+
+// then copy this file and rename this copy to user_config.hpp

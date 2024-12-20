@@ -1,8 +1,9 @@
 #include <Arduino.h>
+
 #include "WiFi.h"
 #include "wifi_manual.hpp"
 #include "utils.hpp"
-#include "network_config.hpp"
+#include "user_config.hpp"
 
 // method for connection to Wifi via credentials
 int wifi_manual_setup()

@@ -58,7 +58,7 @@ h2 {
     border-bottom: 2px solid #0078D7;
     margin-bottom: 15px;
     padding-bottom: 5px;
-    font-size: 18px;
+    font-size: 17px;
 }
 
 /* Tables */
@@ -85,7 +85,7 @@ button {
     background-color: #0078D7;
     color: #fff;
     border: none;
-    padding: 10px 20px;
+    padding: 8px 12px;
     border-radius: 5px;
     cursor: pointer;
     font-size: 14px;
@@ -94,6 +94,13 @@ button {
 
 button:hover {
     background-color: #005A9E;
+}
+
+input {
+    padding: 6px 10px;
+    border-radius: 3px;
+    font-size: 14px;
+    margin: 5px 0px;
 }
 
 /* Footer */

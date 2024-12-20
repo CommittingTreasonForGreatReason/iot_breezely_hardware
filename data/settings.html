@@ -1,0 +1,74 @@
+<!DOCTYPE HTML>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Breezely - Settings</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header>
+        <h1>Breezely Device Management</h1>
+    </header>
+
+    <!-- navigation bar at the top -->
+    <nav>
+        <a href="index.html">Start</a>
+        <a href="settings.html">Settings</a>
+        <a href="device-info.html">Info</a>
+    </nav>
+
+    <!-- main section in the middle -->
+    <main>
+        <h2>Token settings</h2>
+        <table>
+            <tr>
+                <td>Current Token</td>
+                <td id="token">...</td>
+            </tr>
+        </table>
+        <div id="set_token_div">
+            <form action="/set_token" method="get">
+                <input type="text" placeholder="New Token" name="token">
+                <button type="submit">Update Token</button>
+            </form>
+        </div>
+        <div>
+            <br>
+            <h2>Device Name</h2>
+            <form>
+                <input type="text" placeholder="Device Name" name="device-name">
+                <button type="submit">Change Name</button>
+            </form>
+        </div>
+        <div>
+            <br>
+            <h2>Wifi Connection</h2>
+            <table>
+                <tr>List of available networks</tr>
+            </table>
+        </div>
+        <div>
+            <br>
+            <h2></h2>
+            <form action="#">
+                <p><button type="submit">Restart Device</button></p>
+            </form>
+        </div>
+
+        <!-- more settings might follow here ... -->
+    </main>
+
+    <!-- execute the script for dynamic updates -->
+    <script src="script.js" onload="fetchAndDisplaySettings()"></script>
+
+    <!-- static section at the bottom for impressum, references, etc. -->
+    <footer>
+        <p>Breezely Management Interface &copy; 2024</p>
+    </footer>
+
+</body>
+
+</html>

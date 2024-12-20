@@ -7,9 +7,14 @@
 
 #include "web_server.hpp"
 #include "dht_sensor.hpp"
+#include "things_board_client.hpp"
+#include "user_config.hpp"
 
 // define http server instance on default port 80
 AsyncWebServer server(80);
+
+char configured_token[32] = {0};
+bool cloud_connected = false;
 
 String outputState(int output)
 {
@@ -76,16 +81,15 @@ void on_http_gpio_write(AsyncWebServerRequest *request)
 // callback function for sending sensor measurements to the browser on demand
 void on_http_sensor_read(AsyncWebServerRequest *request)
 {
-    static int dummyCnt = 0;
     Serial.println("--> sensor read request from client");
+
+    // StaticJsonDocument<120> jsonDoc;    // --> marked as deprecated, older version of library contains critical bugs !!!
 
     // store sensor data as dictionary of key-value-pairs
     JsonDocument jsonDoc;
-    jsonDoc["window-state"] = digitalRead(18) == HIGH ? "open" : "closed";
+    jsonDoc["window-state"] = digitalRead(MAGNET_INPUT_PIN) == HIGH ? "open" : "closed";
     jsonDoc["air-temperature"] = dht_sensor_get_temperature();
     jsonDoc["air-humidity"] = dht_sensor_get_humidity();
-    dummyCnt += 1;
-    jsonDoc["dummy"] = dummyCnt;
     // ...
 
     // send http response with json encoded payload
@@ -100,6 +104,8 @@ void on_http_fetch_device_info(AsyncWebServerRequest *request)
 {
     Serial.println("--> device info request from client");
 
+    // StaticJsonDocument<200> jsonDoc;    // --> marked as deprecated, older version of library contains critical bugs !!!
+
     JsonDocument jsonDoc;
     jsonDoc["device-name"] = "name";
     jsonDoc["uptime"] = "dd hh:mm:ss";
@@ -107,13 +113,63 @@ void on_http_fetch_device_info(AsyncWebServerRequest *request)
     jsonDoc["ipv4-address"] = WiFi.localIP().toString();
     jsonDoc["mac-address"] = WiFi.macAddress();
     jsonDoc["hostname"] = WiFi.getHostname();
-    jsonDoc["cloud-connection-status"] = "offline";
+    jsonDoc["cloud-connection-status"] = cloud_connected ? "online" : "offline";
     // ...
 
     // send http response with json encoded payload
     String jsonResponse;
     serializeJson(jsonDoc, jsonResponse);
     request->send(200, "application/json", jsonResponse);
+}
+
+// callback function for handling fetch settings request
+void on_http_fetch_settings(AsyncWebServerRequest *request)
+{
+    Serial.println("--> settings request from client");
+
+    // StaticJsonDocument<60> jsonDoc;    // --> marked as deprecated, older version of library contains critical bugs !!!
+
+    JsonDocument jsonDoc;
+    jsonDoc["token"] = (strlen(configured_token) >= 10) ? configured_token : "not configured";
+    // ...
+
+    // send http response with json encoded payload
+    String jsonResponse;
+    serializeJson(jsonDoc, jsonResponse);
+    request->send(200, "application/json", jsonResponse);
+}
+
+// callback for things board token authorization request
+void on_http_set_token(AsyncWebServerRequest *request)
+{
+    // check for token paramater
+    String input_token = "";
+    if (request->hasParam(TOKEN_INPUT_NAME))
+    {
+        input_token = request->getParam(TOKEN_INPUT_NAME)->value();
+    }
+
+    Serial.print("token: ");
+    Serial.println(input_token);
+
+    // when token is changed then force to reconnect with new one
+    if (cloud_connected)
+    {
+        // tear down connection if already connected with a token
+        things_board_client_teardown();
+    }
+
+    cloud_connected = (things_board_client_setup(input_token.c_str()) >= 0);
+    if (cloud_connected) // cloud connection has been made :-)
+    {
+        request->send(200, "text/html", "Successfully made cloud connection with token: " + input_token + ".<br><a href=\"/\">Return to Home Page</a>");
+        memcpy(configured_token, input_token.c_str(), input_token.length()); // save the actually valid token
+        // ...
+        return;
+    }
+
+    // cloud connection has NOT been made :-(
+    request->send(200, "text/html", "Tried to make cloud connection with token: " + input_token + " but failed.<br><a href=\"/\">Return to Home Page</a>");
 }
 
 // setup function for the local async webserver
@@ -127,9 +183,12 @@ int web_server_setup()
     server.on("/gpio_write", HTTP_GET, on_http_gpio_write);
 
     server.on("/sensor_read", HTTP_GET, on_http_sensor_read);
-    server.on("/device_info", on_http_fetch_device_info);
-    server.onNotFound(on_http_not_found);
+    server.on("/device_info", HTTP_GET, on_http_fetch_device_info);
 
+    server.on("/set_token", HTTP_GET, on_http_set_token);
+    server.on("/settings", HTTP_GET, on_http_fetch_settings);
+
+    server.onNotFound(on_http_not_found);
     server.begin();
 
     return 0;
