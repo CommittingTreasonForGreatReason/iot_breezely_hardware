@@ -23,6 +23,7 @@
     <!-- main section in the middle -->
     <main>
         <h2>Device settings</h2>
+        <!-- DEPRICATED
         <table>
             <tr>
                 <td>Current Token</td>
@@ -32,17 +33,22 @@
         <form action="/set_token" method="get">
             <input type="text" placeholder="New Token" name="token">
             <button type="submit">Update Token</button>
-        </form>
+        </form> -->
         <h2>Device Name</h2>
         <table>
             <tr>
                 <td>Current Device Name</td>
                 <td id="device_name">...</td>
             </tr>
+            <tr>
+                <td>Current Customer Name</td>
+                <td id="customer_name">...</td>
+            </tr>
         </table>
         <form action="/set_device_name" method="get">
             <input type="text" placeholder="Device Name" name="device-name">
-            <button type="submit">Change Name</button>
+            <input type="text" placeholder="Customer Name" name="customer-name">
+            <button type="submit">Change Name and Customer</button>
         </form>
 
         <div>

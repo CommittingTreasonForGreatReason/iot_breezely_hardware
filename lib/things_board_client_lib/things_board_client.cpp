@@ -8,6 +8,7 @@
 #include <WiFi.h>
 
 #include "things_board_client.hpp"
+#include "provision.h"
 #include "user_config.hpp"
 #include "logger.hpp"
 
@@ -19,9 +20,8 @@ constexpr char CLIENT_USERNAME[] = "userName";
 constexpr char ACCESS_TOKEN_CRED_TYPE[] = "ACCESS_TOKEN";
 constexpr char MQTT_BASIC_CRED_TYPE[] = "MQTT_BASIC";
 
-#define PROVISION_DEVICE_KEY "rmrx8zgkpa2tqwpptvxw"
-#define PROVISION_DEVICE_SECRET "k9kmvbklxxxpclk59aui"
-#define HARDCODED_TOKEN "12345token" // for some reason the other provisioning function never calls the callback so just set the token hard and maybe try to find solution later ???
+#define PROVISION_DEVICE_KEY "kk93j7hjoamfytmutt0p"
+#define PROVISION_DEVICE_SECRET "0drapl1rzol43vzyzydd"
 
 // Struct for client connecting after provisioning
 struct Credentials
@@ -40,16 +40,18 @@ WiFiClient wifiClient;
 // Initalize the Mqtt client instance
 Arduino_MQTT_Client mqttClient(wifiClient);
 
-// Initalize thingsboard instance based on mqtt client
-ThingsBoard tb(mqttClient, MAX_MESSAGE_SIZE, MAX_MESSAGE_SIZE, Default_Max_Stack_Size);
+Provision<> prov;
+const std::array<IAPI_Implementation *, 1U> apis = {
+    &prov};
 
-bool things_board_connected = false;
+// Initalize thingsboard instance based on mqtt client
+ThingsBoard tb(mqttClient, MAX_MESSAGE_SIZE, MAX_MESSAGE_SIZE, Default_Max_Stack_Size, apis);
+
 constexpr uint64_t REQUEST_TIMEOUT_MICROSECONDS = 5000U * 1000U;
 
 // device provisioning related stuff
 bool provisionRequestSent = false;
 bool provisionResponseProcessed = false;
-/* const std::array<IAPI_Implementation *, 1U> apis = { &prov }; */
 
 void requestTimedOut()
 {
@@ -63,7 +65,7 @@ void processProvisionResponse(const JsonDocument &data)
     char buffer[jsonSize];
     serializeJson(data, buffer, jsonSize);
     Serial.printf("Received device provision response (%s)\n", buffer);
-    provisionResponseProcessed = true;
+
     if (strncmp(data["status"], "SUCCESS", strlen("SUCCESS")) != 0)
     {
         Serial.printf("Provision response contains the error: (%s)\n", data["errorMsg"].as<const char *>());
@@ -95,12 +97,13 @@ void processProvisionResponse(const JsonDocument &data)
     {
         tb.disconnect();
     }
+    provisionResponseProcessed = true;
 }
 
 // getter for the cloud connection status
 bool get_things_board_connected()
 {
-    return things_board_connected;
+    return tb.connected();
 }
 
 // routine is called periodically to send telemetry date to the things board server
@@ -154,7 +157,6 @@ int things_board_client_setup(char const *device_token)
     }
     else
     {
-        things_board_connected = true;
         char buffer[64] = {0};
         sprintf(buffer, "Successfully connected with %s", THINGSBOARD_SERVER);
         serial_logger_print(buffer, LOG_LEVEL_DEBUG);
@@ -165,7 +167,7 @@ int things_board_client_setup(char const *device_token)
 }
 
 // setup function to establish connection for new device (initial device provision process)
-int things_board_client_setup_provisioning(char const *device_name)
+int things_board_client_setup_provisioning(char const *device_name, char const *customer_name, char const *used_token)
 {
     // only in disconnected state a reconnection attempt can be made
     if (tb.connected())
@@ -177,7 +179,7 @@ int things_board_client_setup_provisioning(char const *device_name)
 
     // attempt to connect to the ThingsBoard
     char buffer[64] = {0};
-    sprintf(buffer, "Connecting to: %s with device name %s", THINGSBOARD_SERVER, device_name);
+    sprintf(buffer, "Connecting to: %s with device name %s and customer name %s", THINGSBOARD_SERVER, device_name, customer_name);
     serial_logger_print(buffer, LOG_LEVEL_DEBUG);
     if (!tb.connect(THINGSBOARD_SERVER, PROV_ACCESS_TOKEN, THINGSBOARD_PORT))
     {
@@ -191,17 +193,33 @@ int things_board_client_setup_provisioning(char const *device_name)
         char buffer[64] = {0};
         sprintf(buffer, "Successfully connected with %s", THINGSBOARD_SERVER);
         serial_logger_print(buffer, LOG_LEVEL_DEBUG);
-        things_board_connected = true;
     }
-    // Sending a MAC address as an attribute
-    tb.sendAttributeData("macAddress", WiFi.macAddress().c_str());
     // const Provision_Callback provisionCallback(Access_Token(), &processProvisionResponse, PROVISION_DEVICE_KEY, PROVISION_DEVICE_SECRET, device_name, REQUEST_TIMEOUT_MICROSECONDS, &requestTimedOut); // doesn't work :(
-    /*
-    const Provision_Callback provisionCallback(Device_Access_Token(), &processProvisionResponse, PROVISION_DEVICE_KEY, PROVISION_DEVICE_SECRET, HARDCODED_TOKEN, device_name, REQUEST_TIMEOUT_MICROSECONDS, &requestTimedOut);
+
+    const Provision_Callback provisionCallback(Device_Access_Token(), &processProvisionResponse, PROVISION_DEVICE_KEY, PROVISION_DEVICE_SECRET, used_token, device_name, REQUEST_TIMEOUT_MICROSECONDS, &requestTimedOut);
 
     provisionRequestSent = prov.Provision_Request(provisionCallback);
     if (provisionRequestSent)
-        Serial.println("send provision request");*/
+        Serial.println("send provision request");
+
+    delay(1000);
+    tb.disconnect();
+    delay(1000);
+    if (!tb.connect(THINGSBOARD_SERVER, used_token, THINGSBOARD_PORT))
+    {
+        char buffer[64] = {0};
+        sprintf(buffer, "Failed to connect to: %s", THINGSBOARD_SERVER);
+        serial_logger_print(buffer, LOG_LEVEL_ERROR);
+        return -1;
+    }
+    else
+    {
+        char buffer[64] = {0};
+        sprintf(buffer, "Successfully connected with %s", THINGSBOARD_SERVER);
+        serial_logger_print(buffer, LOG_LEVEL_DEBUG);
+    }
+
+    tb.sendAttributeData("provisioning_customer", customer_name);
     // return provisionRequestSent ? 0 : -1;
     return 0;
 }

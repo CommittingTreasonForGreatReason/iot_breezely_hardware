@@ -76,7 +76,7 @@ enum class State
     CLOUD_CLIENT_IDLE // server active and cloud connected
 };
 
-// set initial state 
+// set initial state
 State current_state = State::WAITING_ON_WIFI;
 
 // ------------ startup routine ------------ //
@@ -104,18 +104,18 @@ void setup()
     delay(100);
     Serial.begin(115200);
 
-    #ifdef __NO_WPS
-        // manual wifi setup (SSID & password hardcoded)
-        wifi_manual_setup(); // does a manuel setup by using hardcoded SSID and password (see more under lib/user_specific)
-    #else
-        // initial wifi setup via WPS (release mode)
-        wifi_wps_setup();
-    #endif
+#ifdef __NO_WPS
+    // manual wifi setup (SSID & password hardcoded)
+    wifi_manual_setup(); // does a manuel setup by using hardcoded SSID and password (see more under lib/user_specific)
+#else
+    // initial wifi setup via WPS (release mode)
+    wifi_wps_setup();
+#endif
 }
 // ------------------------------------------------- //
 
 int64_t delta_time_ms = 1000;
-int64_t things_board_routine_deadline_ms = esp_timer_get_time() / 1000 + delta_time_ms;
+int64_t things_board_routine_deadline_ms = esp_timer_get_time() / 1000.0 + delta_time_ms;
 char buffer[128] = {0};
 
 // ----------- MAIN APPLICATION LOOP ------------ //
@@ -124,138 +124,138 @@ void loop()
     // run the global finite state machine in iterative manner
     switch (current_state)
     {
-        case State::WAITING_ON_WIFI:
-        {
-            // ENTRY
-            serial_logger_print("[FSM] Waiting for Wifi state", LOG_LEVEL_DEBUG);
-            // ...
+    case State::WAITING_ON_WIFI:
+    {
+        // ENTRY
+        serial_logger_print("[FSM] Waiting for Wifi state", LOG_LEVEL_DEBUG);
+        // ...
 
-            // DO
-            // wait indefinetely for a wifi connection
-            while (WiFi.status() != WL_CONNECTED)
+        // DO
+        // wait indefinetely for a wifi connection
+        while (WiFi.status() != WL_CONNECTED)
+        {
+            // blink the wifi status LED (green) slowly while waiting for connection
+            dot_dot_dot_loop_increment();
+            digitalWrite(WIFI_STATUS_PIN, !digitalRead(WIFI_STATUS_PIN));
+            delay(1000);
+        }
+
+        // EXIT
+        serial_logger_print("~~~ WIFI SETUP COMPLETE ~~~", LOG_LEVEL_INFO);
+        log_wifi_info(LOG_LEVEL_DEBUG);
+
+        // keep wifi status LED (green) constantly on to signal active connection
+        digitalWrite(WIFI_STATUS_PIN, HIGH);
+
+        // start mDNS discovery service and set timeout
+        start_mDNS_timeout_us(1000 * 1000);
+
+        // continue to launch the webinterface
+        web_server_setup();
+        serial_logger_print("\n~~~ SERVER SETUP COMPLETE ~~~", LOG_LEVEL_INFO);
+        sprintf(buffer, "Access your breezely at http://%s ", HOSTNAME);
+        serial_logger_print(buffer, LOG_LEVEL_INFO);
+
+        // transition into ONLY_SERVER_IDLE state
+        current_state = State::ONLY_SERVER_IDLE;
+        break;
+    }
+
+    case State::ONLY_SERVER_IDLE:
+    {
+        // ENTRY
+        serial_logger_print("[FSM] Only server idle state", LOG_LEVEL_DEBUG);
+        // ...
+
+        // DO
+        while (true)
+        {
+            // readout the magnetic reed switch and control output pin accordingly
+            static int last_pin_status = LOW;
+            int pin_status = digitalRead(MAGNET_INPUT_PIN);
+
+            // log window state changes to the serial monitor
+            if (pin_status != last_pin_status)
             {
-                // blink the wifi status LED (green) slowly while waiting for connection
-                dot_dot_dot_loop_increment();
-                digitalWrite(WIFI_STATUS_PIN, !digitalRead(WIFI_STATUS_PIN));
-                delay(1000);
+                sprintf(buffer, "updated pin status: %d", pin_status);
+                serial_logger_print(buffer, LOG_LEVEL_DEBUG);
+                last_pin_status = pin_status;
             }
 
             // EXIT
-            serial_logger_print("~~~ WIFI SETUP COMPLETE ~~~", LOG_LEVEL_INFO);
-            log_wifi_info(LOG_LEVEL_DEBUG);
-
-            // keep wifi status LED (green) constantly on to signal active connection
-            digitalWrite(WIFI_STATUS_PIN, HIGH);
-
-            // start mDNS discovery service and set timeout 
-            start_mDNS_timeout_us(1000 * 1000);
-
-            // continue to launch the webinterface
-            web_server_setup();
-            serial_logger_print("\n~~~ SERVER SETUP COMPLETE ~~~", LOG_LEVEL_INFO);
-            sprintf(buffer, "Access your breezely at http://%s ", HOSTNAME);
-            serial_logger_print(buffer, LOG_LEVEL_INFO);
-
-            // transition into ONLY_SERVER_IDLE state
-            current_state = State::ONLY_SERVER_IDLE;
-            break;
-        }
-        
-        case State::ONLY_SERVER_IDLE:
-        {
-            // ENTRY
-            serial_logger_print("[FSM] Only server idle state", LOG_LEVEL_DEBUG);
-            // ...
-
-            // DO
-            while (true)
+            if (WiFi.status() != WL_CONNECTED)
             {
-                // readout the magnetic reed switch and control output pin accordingly
-                static int last_pin_status = LOW;
-                int pin_status = digitalRead(MAGNET_INPUT_PIN);
-                
-                // log window state changes to the serial monitor
-                if (pin_status != last_pin_status)
-                {
-                    sprintf(buffer, "updated pin status: %d", pin_status);
-                    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
-                    last_pin_status = pin_status;
-                }
-
-                // EXIT
-                if (WiFi.status() != WL_CONNECTED)
-                {
-                    #ifdef __NO_WPS
-                        // manual wifi setup (SSID & password hardcoded)
-                        wifi_manual_setup(); // does a manuel setup by using hardcoded SSID and password (see more under lib/user_specific)
-                    #else
-                        // initial wifi setup via WPS (release mode)
-                        wifi_wps_setup();
-                    #endif
-                    current_state = State::WAITING_ON_WIFI;
-                    // break;
-                }
-                else if (get_things_board_connected())
-                {
-                    serial_logger_print("~~~ CLOUD CONNECTION MADE ~~~", LOG_LEVEL_INFO);
-                    current_state = State::CLOUD_CLIENT_IDLE;
-                    // break;
-                }
-                delay(2000);
+#ifdef __NO_WPS
+                // manual wifi setup (SSID & password hardcoded)
+                wifi_manual_setup(); // does a manuel setup by using hardcoded SSID and password (see more under lib/user_specific)
+#else
+                // initial wifi setup via WPS (release mode)
+                wifi_wps_setup();
+#endif
+                current_state = State::WAITING_ON_WIFI;
+                break;
             }
-            
-            break;
+            else if (get_things_board_connected())
+            {
+                current_state = State::CLOUD_CLIENT_IDLE;
+                break;
+            }
+            delay(2000);
         }
 
-        case State::CLOUD_CLIENT_IDLE:
+        break;
+    }
+
+    case State::CLOUD_CLIENT_IDLE:
+    {
+        // ENTRY
+        serial_logger_print("[FSM] Cloud client idle state", LOG_LEVEL_DEBUG);
+        delta_time_ms = 5000;
+        things_board_routine_deadline_ms = esp_timer_get_time() / 1000 + delta_time_ms;
+        serial_logger_print("~~~ CLOUD CONNECTION MADE ~~~", LOG_LEVEL_INFO);
+
+        // DO
+        while (get_things_board_connected())
         {
-            // ENTRY
-            serial_logger_print("[FSM] Cloud client idle state", LOG_LEVEL_DEBUG);
-            delta_time_ms = 1000;
-            things_board_routine_deadline_ms = esp_timer_get_time() / 1000 + delta_time_ms;
-
-            // DO
-            while (get_things_board_connected())
+            // readout the magnetic reed switch and control output pin accordingly
+            static int last_pin_status = LOW;
+            int pin_status = digitalRead(MAGNET_INPUT_PIN);
+            if (pin_status != last_pin_status)
             {
-                // readout the magnetic reed switch and control output pin accordingly
-                static int last_pin_status = LOW;
-                int pin_status = digitalRead(MAGNET_INPUT_PIN);
-                if (pin_status != last_pin_status)
-                {
-                    sprintf(buffer, "updated pin status: %d", pin_status);
-                    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
-                    last_pin_status = pin_status;
-                }
-
-                float temperature = dht_sensor_get_temperature();
-                float humidity = dht_sensor_get_humidity();
-                if (things_board_routine_deadline_ms <= esp_timer_get_time())
-                {
-                    things_board_client_routine(temperature, humidity, (pin_status == 1));
-                    things_board_routine_deadline_ms = esp_timer_get_time() / 1000 + delta_time_ms;
-                }
-                delay(100);
+                sprintf(buffer, "updated pin status: %d", pin_status);
+                serial_logger_print(buffer, LOG_LEVEL_DEBUG);
+                last_pin_status = pin_status;
             }
 
-            // cloud connection lost
-            current_state = State::ONLY_SERVER_IDLE;
-
-            // EXIT
-            break;
+            float temperature = dht_sensor_get_temperature();
+            float humidity = dht_sensor_get_humidity();
+            if (things_board_routine_deadline_ms <= esp_timer_get_time() / 1000)
+            {
+                things_board_client_routine(temperature, humidity, (pin_status == 1));
+                things_board_routine_deadline_ms = esp_timer_get_time() / 1000 + delta_time_ms;
+            }
+            delay(100);
         }
-            
-        default:
-        {
-            // ENTRY
-            // ...
 
-            // DO
-            serial_logger_print("\n[FSM] unknown state!", LOG_LEVEL_WARNING);
+        // cloud connection lost
+        current_state = State::ONLY_SERVER_IDLE;
 
-            // EXIT
-            // ...
-            break;
-        }
+        // EXIT
+        break;
+    }
+
+    default:
+    {
+        // ENTRY
+        // ...
+
+        // DO
+        serial_logger_print("\n[FSM] unknown state!", LOG_LEVEL_WARNING);
+
+        // EXIT
+        // ...
+        break;
+    }
     }
 
     delay(100);

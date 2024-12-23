@@ -16,6 +16,7 @@ AsyncWebServer server(80);
 
 char configured_token[32] = {0};
 char configured_device_name[32] = {0};
+char configured_customer_name[32] = {0};
 bool cloud_connected = false;
 
 String outputState(int output)
@@ -137,6 +138,7 @@ void on_http_fetch_settings(AsyncWebServerRequest *request)
     JsonDocument jsonDoc;
     jsonDoc["token"] = (strlen(configured_token) >= 10) ? configured_token : "not configured";
     jsonDoc["device_name"] = (strlen(configured_device_name) >= 5) ? configured_device_name : "not set";
+    jsonDoc["customer_name"] = (strlen(configured_customer_name) >= 5) ? configured_customer_name : "not set";
     // ...
 
     send_http_response_json_format(request, 200, &jsonDoc);
@@ -185,10 +187,22 @@ void on_http_set_device_name(AsyncWebServerRequest *request)
     {
         input_device_name = request->getParam(DEVICE_NAME_INPUT_NAME)->value();
     }
+    String input_customer_name = "";
+    if (request->hasParam(CUSTOMER_NAME_INPUT_NAME))
+    {
+        input_customer_name = request->getParam(CUSTOMER_NAME_INPUT_NAME)->value();
+    }
 
     char buffer[64] = {0};
     sprintf(buffer, "device_name: %s", input_device_name);
     serial_logger_print(buffer, LOG_LEVEL_DEBUG);
+    sprintf(buffer, "customer_name: %s", input_customer_name);
+    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
+    if (input_device_name.length() <= 5 || input_customer_name.length() <= 5) // input names to short
+    {
+        request->send(200, "text/html", "Invalid device name OR customer name length!!! <br><a href=\"/\">Return to Home Page</a>");
+        return;
+    }
 
     // when token is changed then force to reconnect with new one
     if (cloud_connected)
@@ -197,17 +211,18 @@ void on_http_set_device_name(AsyncWebServerRequest *request)
         things_board_client_teardown();
     }
 
-    cloud_connected = things_board_client_setup_provisioning(input_device_name.c_str()) >= 0;
-    if (cloud_connected) // cloud connection has been made :-)
+    cloud_connected = things_board_client_setup_provisioning(input_device_name.c_str(), input_customer_name.c_str(), WiFi.macAddress().c_str()) >= 0; //  using mac address as token for now (kindof problematic but oh well (͡ ° ͜ʖ ͡ °) )
+    if (cloud_connected)                                                                                                                              // cloud connection has been made :-)
     {
-        request->send(200, "text/html", "Successfully made cloud connection with device name: " + input_device_name + ".<br><a href=\"/\">Return to Home Page</a>");
-        memcpy(configured_device_name, input_device_name.c_str(), input_device_name.length()); // save the actually valid token
+        request->send(200, "text/html", "Successfully made cloud connection with device name: " + input_device_name + " | customer name: " + input_customer_name + ".<br><a href=\"/\">Return to Home Page</a>");
+        memcpy(configured_device_name, input_device_name.c_str(), input_device_name.length());       // save the actually valid token
+        memcpy(configured_customer_name, input_customer_name.c_str(), input_customer_name.length()); // save the actually valid token
         // ...
         return;
     }
 
     // cloud connection has NOT been made :-(
-    request->send(200, "text/html", "Tried to make cloud connection with device name: " + input_device_name + " but failed.<br><a href=\"/\">Return to Home Page</a>");
+    request->send(200, "text/html", "Tried to make cloud connection with device name: " + input_device_name + " | customer name: " + input_customer_name + " but failed.<br><a href=\"/\">Return to Home Page</a>");
 }
 
 // setup function for the local async webserver
