@@ -32,4 +32,8 @@
 #define TELEMETRY_NAME_HUMIDITY "humidity"
 #define TELEMETRY_NAME_WINDOW_STATUS "window_status"
 
-// then copy this file and rename this copy to user_config.hpp
+// testig / development
+// #define __USE_DATA_FABRICATION // comment th10is in if you would like to fabricate data (for more info see data_fabricator.cpp) can also be used if no sensors are present because you are a peasant :-)
+
+
+then copy this file and rename this copy to user_config.hpp

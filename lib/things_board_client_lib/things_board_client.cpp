@@ -11,6 +11,7 @@
 #include "provision.h"
 #include "user_config.hpp"
 #include "logger.hpp"
+#include "data_communications.hpp"
 
 constexpr char CREDENTIALS_TYPE[] = "credentialsType";
 constexpr char CREDENTIALS_VALUE[] = "credentialsValue";
@@ -109,18 +110,9 @@ bool get_things_board_connected()
 // routine is called periodically to send telemetry date to the things board server
 void things_board_client_routine(float temperature, float humidity, bool window_status)
 {
-    tb.sendTelemetryData(TELEMETRY_NAME_TEMPERATURE, temperature);
-    tb.sendTelemetryData(TELEMETRY_NAME_HUMIDITY, humidity);
-    tb.sendTelemetryData(TELEMETRY_NAME_WINDOW_STATUS, window_status);
-
-    // also print to the serial console for debugging purposes
-    char buffer[64] = {0};
-    sprintf(buffer, "sent telemetry %s: %f", TELEMETRY_NAME_TEMPERATURE, temperature);
-    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
-    sprintf(buffer, "sent telemetry %s: %f", TELEMETRY_NAME_HUMIDITY, humidity);
-    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
-    sprintf(buffer, "sent telemetry %s: %f", TELEMETRY_NAME_WINDOW_STATUS, window_status);
-    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
+    try_send_temperature(&tb, temperature);
+    try_send_humidity(&tb, humidity);
+    try_send_window_status(&tb, window_status);
 }
 
 // setup function to establish connection with existing device token (provision already completed)

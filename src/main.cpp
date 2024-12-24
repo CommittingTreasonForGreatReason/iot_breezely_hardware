@@ -9,11 +9,17 @@
 #include "wifi_manual.hpp"
 #include "wifi_protect_setup.hpp"
 #include "things_board_client.hpp"
-#include "dht_sensor.hpp"
+
 #include "web_server.hpp"
 #include "user_config.hpp"
 #include "logger.hpp"
 #include "esp_timer.h"
+
+#ifdef __USE_DATA_FABRICATION
+#include "data_fabricator.hpp"
+#else
+#include "dht_sensor.hpp"
+#endif
 
 void log_wifi_info(serial_log_level_t log_level)
 {
@@ -88,8 +94,12 @@ void setup()
     pinMode(WIFI_STATUS_PIN, OUTPUT);
     pinMode(MAGNET_INPUT_PIN, INPUT);
 
+#ifdef __USE_DATA_FABRICATION
+    data_fabricator_setup();
+#else
     // setup DHT11 sensor for air temperature and humidity
     dht_sensor_setup();
+#endif
 
     set_global_log_level(LOG_LEVEL_DEBUG); // <-------------------------------------------------------------------------------- SET LOG LEVEL HERE
 
@@ -217,6 +227,11 @@ void loop()
         // DO
         while (get_things_board_connected())
         {
+#ifdef __USE_DATA_FABRICATION
+            float temperature = data_fabricator_get_temperature();
+            float humidity = data_fabricator_get_humidity();
+            bool window_status = data_fabricator_get_window_status();
+#else
             // readout the magnetic reed switch and control output pin accordingly
             static int last_pin_status = LOW;
             int pin_status = digitalRead(MAGNET_INPUT_PIN);
@@ -229,9 +244,12 @@ void loop()
 
             float temperature = dht_sensor_get_temperature();
             float humidity = dht_sensor_get_humidity();
+            bool window_status = (pin_status == 1);
+
+#endif
             if (things_board_routine_deadline_ms <= esp_timer_get_time() / 1000)
             {
-                things_board_client_routine(temperature, humidity, (pin_status == 1));
+                things_board_client_routine(temperature, humidity, window_status);
                 things_board_routine_deadline_ms = esp_timer_get_time() / 1000 + delta_time_ms;
             }
             delay(100);

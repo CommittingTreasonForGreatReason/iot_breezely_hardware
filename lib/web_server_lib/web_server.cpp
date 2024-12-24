@@ -6,10 +6,15 @@
 #include <ArduinoJson.h>
 
 #include "web_server.hpp"
-#include "dht_sensor.hpp"
 #include "things_board_client.hpp"
 #include "user_config.hpp"
 #include "logger.hpp"
+
+#ifdef __USE_DATA_FABRICATION
+#include "data_fabricator.hpp"
+#else
+#include "dht_sensor.hpp"
+#endif
 
 // define http server instance on default port 80
 AsyncWebServer server(80);
@@ -99,9 +104,17 @@ void on_http_sensor_read(AsyncWebServerRequest *request)
 
     // store sensor data as dictionary of key-value-pairs
     JsonDocument jsonDoc;
+
+#ifdef __USE_DATA_FABRICATION
+    jsonDoc["window-state"] = data_fabricator_get_window_status() ? "open" : "closed";
+    jsonDoc["air-temperature"] = data_fabricator_get_temperature();
+    jsonDoc["air-humidity"] = data_fabricator_get_humidity();
+#else
     jsonDoc["window-state"] = digitalRead(MAGNET_INPUT_PIN) == HIGH ? "open" : "closed";
     jsonDoc["air-temperature"] = dht_sensor_get_temperature();
     jsonDoc["air-humidity"] = dht_sensor_get_humidity();
+#endif
+
     // ...
 
     // send http response with json encoded payload
@@ -143,7 +156,7 @@ void on_http_fetch_settings(AsyncWebServerRequest *request)
 
     send_http_response_json_format(request, 200, &jsonDoc);
 }
-
+/*
 // callback for things board token authorization request
 void on_http_set_token(AsyncWebServerRequest *request)
 {
@@ -176,7 +189,7 @@ void on_http_set_token(AsyncWebServerRequest *request)
 
     // cloud connection has NOT been made :-(
     request->send(200, "text/html", "Tried to make cloud connection with token: " + input_token + " but failed.<br><a href=\"/\">Return to Home Page</a>");
-}
+}*/
 
 // callback for things board token authorization request
 void on_http_set_device_name(AsyncWebServerRequest *request)
@@ -238,7 +251,7 @@ int web_server_setup()
     server.on("/sensor_read", HTTP_GET, on_http_sensor_read);
     server.on("/device_info", HTTP_GET, on_http_fetch_device_info);
 
-    server.on("/set_token", HTTP_GET, on_http_set_token);
+    // server.on("/set_token", HTTP_GET, on_http_set_token);
     server.on("/set_device_name", HTTP_GET, on_http_set_device_name);
     server.on("/settings", HTTP_GET, on_http_fetch_settings);
 

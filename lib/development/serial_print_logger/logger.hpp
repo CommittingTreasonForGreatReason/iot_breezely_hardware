@@ -9,5 +9,5 @@ typedef enum serial_log_level
 
 void set_global_log_level(serial_log_level_t global_log_level_);
 serial_log_level_t get_global_log_level();
-
+void serial_logger_print_telemetry_float(const char *telemetry_name, float value);
 void serial_logger_print(const char *message, serial_log_level_t log_level);
