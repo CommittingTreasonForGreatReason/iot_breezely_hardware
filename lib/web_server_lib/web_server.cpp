@@ -213,7 +213,7 @@ void on_http_set_device_name(AsyncWebServerRequest *request)
 int web_server_setup()
 {
     // serve static index.html stored in SPIFFS
-    server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
+    server.serveStatic("/", SPIFFS, "/webdir").setDefaultFile("index.html");
 
     // define the async callback functions for different routes (= http paths)
     server.on("/login", HTTP_GET, on_http_login);
