@@ -143,9 +143,10 @@ void loop()
                 static int last_pin_status = LOW;
                 int pin_status = digitalRead(MAGNET_INPUT_PIN);
                 
-                // log window state changes to the serial monitor
+                // log window state changes to the serial monitor and update status LED
                 if (pin_status != last_pin_status)
                 {
+                    digitalWrite(WINDOW_STATUS_LED_PIN, !pin_status);
                     sprintf(buffer, "updated pin status: %d", pin_status);
                     serial_logger_print(buffer, LOG_LEVEL_DEBUG);
                     last_pin_status = pin_status;
@@ -192,6 +193,7 @@ void loop()
                 int pin_status = digitalRead(MAGNET_INPUT_PIN);
                 if (pin_status != last_pin_status)
                 {
+                    digitalWrite(WINDOW_STATUS_LED_PIN, !pin_status);
                     sprintf(buffer, "updated pin status: %d", pin_status);
                     serial_logger_print(buffer, LOG_LEVEL_DEBUG);
                     last_pin_status = pin_status;
