@@ -53,7 +53,8 @@ State current_state = State::WAITING_ON_WIFI;
 void setup()
 {
     // configure GPIO pins
-    pinMode(WIFI_STATUS_PIN, OUTPUT);
+    pinMode(WIFI_STATUS_LED_PIN, OUTPUT);
+    pinMode(WINDOW_STATUS_LED_PIN, OUTPUT);
     pinMode(MAGNET_INPUT_PIN, INPUT);
 
     // setup DHT11 sensor for air temperature and humidity
@@ -104,7 +105,7 @@ void loop()
             {
                 // blink the wifi status LED (green) slowly while waiting for connection
                 dot_dot_dot_loop_increment();
-                digitalWrite(WIFI_STATUS_PIN, !digitalRead(WIFI_STATUS_PIN));
+                digitalWrite(WIFI_STATUS_LED_PIN, !digitalRead(WIFI_STATUS_LED_PIN));
                 delay(1000);
             }
 
@@ -113,7 +114,7 @@ void loop()
             log_wifi_info(LOG_LEVEL_DEBUG);
 
             // keep wifi status LED (green) constantly on to signal active connection
-            digitalWrite(WIFI_STATUS_PIN, HIGH);
+            digitalWrite(WIFI_STATUS_LED_PIN, HIGH);
 
             // start mDNS discovery service and set timeout 
             start_mDNS_timeout_us(1000 * 1000);
