@@ -1,10 +1,21 @@
 #pragma once
 
-// gpio
-#define MAGNET_INPUT_PIN 18
-#define HTTP_OUTPUT_PIN 19
-#define WIFI_STATUS_PIN 21
-#define DHT_DATA_PIN 26
+// use this when falshing the PCB setup (instead of the breadboard)
+// #define __PCB_MAPPING
+
+// gpio pin mapping
+#ifdef __PCB_MAPPING
+    #define MAGNET_INPUT_PIN 32     // --> reed switch
+    #define HTTP_OUTPUT_PIN 12      // --> red LED
+    #define WIFI_STATUS_PIN 25      // --> green LED
+    #define DHT_DATA_PIN 13         // data pin from DHT sensor
+#else
+    #define MAGNET_INPUT_PIN 18
+    #define HTTP_OUTPUT_PIN 19
+    #define WIFI_STATUS_PIN 21
+    #define DHT_DATA_PIN 26
+#endif
+
 #define DHTTYPE DHT11       // DHT 11
 
 // networking
