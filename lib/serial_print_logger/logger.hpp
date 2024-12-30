@@ -1,3 +1,4 @@
+#pragma once
 
 typedef enum serial_log_level
 {
