@@ -24,6 +24,34 @@ char configured_device_name[32] = {0};
 char configured_customer_name[32] = {0};
 bool cloud_connected = false;
 
+uint16_t identify_start_ms = 0;
+uint16_t last_identify_toggle_ms = 0;
+#define IDENTIFY_DURATION_MS 5000
+
+String device_name = "";
+
+char *get_configured_device_name()
+{
+    return configured_device_name;
+}
+
+void identify_loop()
+{
+    uint64_t current_time_ms = esp_timer_get_time() / 1000;
+    if (identify_start_ms + IDENTIFY_DURATION_MS > current_time_ms)
+    {
+        if (current_time_ms - last_identify_toggle_ms > 100)
+        {
+            digitalWrite(WINDOW_STATUS_LED_PIN, !digitalRead(WINDOW_STATUS_LED_PIN)); // toggle
+            last_identify_toggle_ms = current_time_ms;
+        }
+    }
+    else
+    {
+        digitalWrite(WINDOW_STATUS_LED_PIN, LOW);
+    }
+}
+
 String outputState(int output)
 {
     return digitalRead(output) ? "checked" : "";
@@ -46,61 +74,23 @@ void on_http_not_found(AsyncWebServerRequest *request)
     request->send(404, "text/plain", "Not found");
 }
 
-// callback for login attempts
-void on_http_login(AsyncWebServerRequest *request)
-{
-    String input_username = "No message sent";
-    String input_password = "No message sent";
-    // GET username value on <ESP_IP>/get?username=<inputMessage>
-    if (request->hasParam(USERNAME_INPUT_NAME))
-    {
-        input_username = request->getParam(USERNAME_INPUT_NAME)->value();
-    }
-    // GET password value on <ESP_IP>/get?password=<inputMessage>
-    if (request->hasParam(PASSWORD_INPUT_NAME))
-    {
-        input_password = request->getParam(PASSWORD_INPUT_NAME)->value();
-    }
-    char buffer[64] = {0};
-    sprintf(buffer, "username: %s", input_username);
-    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
-    sprintf(buffer, "password: %s", input_password);
-    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
-
-    request->send(200, "text/html", "HTTP GET request with user login send to esp32 (username: " + input_username + " | password: " + input_password + ")<br><a href=\"/\">Return to Home Page</a>");
-}
-
 // callback function to write the digital output pin state via GET request
-void on_http_gpio_write(AsyncWebServerRequest *request)
+void on_http_identify(AsyncWebServerRequest *request)
 {
-    String output_message;
-    String state_message;
-    // GET input1 value on <ESP_IP>/gpio_update?output=<output_message>&state=<state_message>
-    if (request->hasParam(OUTPUT_NAME) && request->hasParam(STATE_NAME))
-    {
-        output_message = request->getParam(OUTPUT_NAME)->value();
-        state_message = request->getParam(STATE_NAME)->value();
-        digitalWrite(output_message.toInt(), state_message.toInt());
-    }
-    else
-    {
-        output_message = "No message sent";
-        state_message = "No message sent";
-    }
+    serial_logger_print("identify invoked", LOG_LEVEL_DEBUG);
+    identify_start_ms = esp_timer_get_time() / 1000;
 
-    char buffer[64] = {0};
-    sprintf(buffer, "GPIO: %s -> %s", output_message, state_message);
-    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
-
-    request->send(200, "text/plain", "OK");
+    File html_file = SPIFFS.open("/webdir/index.html");
+    uint32_t size = html_file.size();
+    char buffer[size] = {0};
+    html_file.readBytes(buffer, size);
+    request->send(200, "text/html", buffer);
 }
 
 // callback function for sending sensor measurements to the browser on demand
 void on_http_sensor_read(AsyncWebServerRequest *request)
 {
     serial_logger_print("-- > sensor read request from client", LOG_LEVEL_DEBUG);
-
-    // StaticJsonDocument<120> jsonDoc;    // --> marked as deprecated, older version of library contains critical bugs !!!
 
     // store sensor data as dictionary of key-value-pairs
     JsonDocument jsonDoc;
@@ -126,10 +116,8 @@ void on_http_fetch_device_info(AsyncWebServerRequest *request)
 {
     Serial.println("--> device info request from client");
 
-    // StaticJsonDocument<200> jsonDoc;    // --> marked as deprecated, older version of library contains critical bugs !!!
-
     JsonDocument jsonDoc;
-    jsonDoc["device-name"] = "name";
+    jsonDoc["device-name"] = device_name;
     jsonDoc["uptime"] = "dd hh:mm:ss";
     jsonDoc["wifi-ssid"] = WiFi.SSID();
     jsonDoc["ipv4-address"] = WiFi.localIP().toString();
@@ -146,12 +134,10 @@ void on_http_fetch_settings(AsyncWebServerRequest *request)
 {
     Serial.println("--> settings request from client");
 
-    // StaticJsonDocument<60> jsonDoc;    // --> marked as deprecated, older version of library contains critical bugs !!!
-
     JsonDocument jsonDoc;
     jsonDoc["token"] = (strlen(configured_token) >= 10) ? configured_token : "not configured";
-    jsonDoc["device_name"] = (strlen(configured_device_name) >= 5) ? configured_device_name : "not set";
-    jsonDoc["customer_name"] = (strlen(configured_customer_name) >= 5) ? configured_customer_name : "not set";
+    jsonDoc["device-name"] = (strlen(configured_device_name) >= 5) ? configured_device_name : "not set";
+    jsonDoc["customer-name"] = (strlen(configured_customer_name) >= 5) ? configured_customer_name : "not set";
     // ...
 
     send_http_response_json_format(request, 200, &jsonDoc);
@@ -182,7 +168,8 @@ void on_http_set_token(AsyncWebServerRequest *request)
     if (cloud_connected) // cloud connection has been made :-)
     {
         request->send(200, "text/html", "Successfully made cloud connection with token: " + input_token + ".<br><a href=\"/\">Return to Home Page</a>");
-        memcpy(configured_token, input_token.c_str(), input_token.length()); // save the actually valid token
+        set_access_token(input_token);      // save the actually valid token
+        // memcpy(configured_token, input_token.c_str(), input_token.length());
         // ...
         return;
     }
@@ -223,13 +210,14 @@ void on_http_set_device_name(AsyncWebServerRequest *request)
         // tear down connection if already connected with a token
         things_board_client_teardown();
     }
-
-    cloud_connected = things_board_client_setup_provisioning(input_device_name.c_str(), input_customer_name.c_str(), WiFi.macAddress().c_str()) >= 0; //  using mac address as token for now (kindof problematic but oh well (͡ ° ͜ʖ ͡ °) )
-    if (cloud_connected)                                                                                                                              // cloud connection has been made :-)
+    const char *token = WiFi.macAddress().c_str();
+    cloud_connected = things_board_client_setup_provisioning(input_device_name.c_str(), input_customer_name.c_str(), token) >= 0; //  using mac address as token for now (kindof problematic but oh well (͡ ° ͜ʖ ͡ °) )
+    if (cloud_connected)                                                                                                          // cloud connection has been made :-)
     {
         request->send(200, "text/html", "Successfully made cloud connection with device name: " + input_device_name + " | customer name: " + input_customer_name + ".<br><a href=\"/\">Return to Home Page</a>");
-        memcpy(configured_device_name, input_device_name.c_str(), input_device_name.length());       // save the actually valid token
-        memcpy(configured_customer_name, input_customer_name.c_str(), input_customer_name.length()); // save the actually valid token
+        memcpy(configured_device_name, input_device_name.c_str(), input_device_name.length());
+        memcpy(configured_customer_name, input_customer_name.c_str(), input_customer_name.length());
+        memcpy(configured_token, token, strlen(token));
         // ...
         return;
     }
@@ -242,11 +230,10 @@ void on_http_set_device_name(AsyncWebServerRequest *request)
 int web_server_setup()
 {
     // serve static index.html stored in SPIFFS
-    server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
+    server.serveStatic("/", SPIFFS, "/webdir").setDefaultFile("index.html");
 
     // define the async callback functions for different routes (= http paths)
-    server.on("/login", HTTP_GET, on_http_login);
-    server.on("/gpio_write", HTTP_GET, on_http_gpio_write);
+    server.on("/identify", HTTP_GET, on_http_identify);
 
     server.on("/sensor_read", HTTP_GET, on_http_sensor_read);
     server.on("/device_info", HTTP_GET, on_http_fetch_device_info);

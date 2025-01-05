@@ -1,10 +1,21 @@
 #pragma once
 
-// gpio
-#define MAGNET_INPUT_PIN 18
-#define HTTP_OUTPUT_PIN 19
-#define WIFI_STATUS_PIN 21
-#define DHT_DATA_PIN 26
+// use this when falshing the PCB setup (instead of the breadboard)
+// #define __PCB_MAPPING
+
+// gpio pin mapping
+#ifdef __PCB_MAPPING
+    #define MAGNET_INPUT_PIN 32     // --> reed switch
+    #define WINDOW_STATUS_LED_PIN 12      // --> red LED
+    #define WIFI_STATUS_LED_PIN 25      // --> green LED
+    #define DHT_DATA_PIN 13         // data pin from DHT sensor
+#else
+    #define MAGNET_INPUT_PIN 18
+    #define WINDOW_STATUS_LED_PIN 19
+    #define WIFI_STATUS_LED_PIN 21
+    #define DHT_DATA_PIN 26
+#endif
+
 #define DHTTYPE DHT11       // DHT 11
 
 // networking
@@ -26,6 +37,8 @@
 // things board specific env parameters
 #define THINGSBOARD_SERVER "server-malte.duckdns.org"
 #define THINGSBOARD_PORT 5869 // 1883U
+#define PROVISION_DEVICE_KEY "<prov-key>"                   // can be found in breezely device profile on thingboard admin page
+#define PROVISION_DEVICE_SECRET "<prov-secret>"             // " "
 
 // name definitions of the measurement datapoints 
 #define TELEMETRY_NAME_TEMPERATURE "temperature"

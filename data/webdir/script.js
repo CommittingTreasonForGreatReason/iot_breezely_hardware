@@ -40,8 +40,8 @@ function fetchAndDisplaySettings() {
             // display the receceived json encoded device info
             let response = JSON.parse(this.responseText);
             document.getElementById("token").innerHTML = response["token"];
-            document.getElementById("device_name").innerHTML = response["device_name"];
-            document.getElementById("customer_name").innerHTML = response["customer_name"];
+            document.getElementById("device-name").innerHTML = response["device-name"];
+            document.getElementById("customer-name").innerHTML = response["customer-name"];
             // ...
         }
     }

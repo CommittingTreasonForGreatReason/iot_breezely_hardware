@@ -1,5 +1,6 @@
 #include <Arduino.h>
 
+#include <ArduinoHttpClient.h>
 #include <Arduino_MQTT_Client.h>
 #include <Server_Side_RPC.h>
 #include <Attribute_Request.h>
@@ -116,13 +117,13 @@ void things_board_client_routine(float temperature, float humidity, bool window_
 }
 
 // setup function to establish connection with existing device token (provision already completed)
-int things_board_client_setup(char const *device_token)
+int things_board_client_setup(char const *access_token)
 {
     // validate present token
-    if (strlen(device_token) < 10)
+    if (strlen(access_token) < 10)
     {
         char buffer[64] = {0};
-        sprintf(buffer, "invalid token length: %d", device_token);
+        sprintf(buffer, "invalid token length: %d", access_token);
         serial_logger_print(buffer, LOG_LEVEL_ERROR);
         return -1;
     }
@@ -137,10 +138,10 @@ int things_board_client_setup(char const *device_token)
 
     // attempt to connect to the ThingsBoard
     char buffer[64] = {0};
-    sprintf(buffer, "Connecting to: %s with token %s", THINGSBOARD_SERVER, device_token);
+    sprintf(buffer, "Connecting to: %s with token %s", THINGSBOARD_SERVER, access_token);
     serial_logger_print(buffer, LOG_LEVEL_DEBUG);
 
-    if (!tb.connect(THINGSBOARD_SERVER, device_token, THINGSBOARD_PORT))
+    if (!tb.connect(THINGSBOARD_SERVER, access_token, THINGSBOARD_PORT))
     {
         char buffer[64] = {0};
         sprintf(buffer, "Failed to connect to: %s", THINGSBOARD_SERVER);
@@ -213,6 +214,7 @@ int things_board_client_setup_provisioning(char const *device_name, char const *
 
     tb.sendAttributeData("provisioning_customer", customer_name);
     // return provisionRequestSent ? 0 : -1;
+
     return 0;
 }
 

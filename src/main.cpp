@@ -21,7 +21,7 @@
 #include "dht_sensor.hpp"
 #endif
 
-void log_wifi_info(serial_log_level_t log_level)
+void log_wifi_info_debug(serial_log_level_t log_level)
 {
     char buffer[128] = {0};
     serial_logger_print("\n######### WIFI INFO #########", log_level);
@@ -51,11 +51,11 @@ void log_wifi_info(serial_log_level_t log_level)
     serial_logger_print("#############################", log_level);
 }
 
-int start_mDNS_timeout_us(int64_t timeout_us)
+int start_mDNS_timeout_us(const char *hostname, const int64_t timeout_us)
 {
     int64_t timeout_deadline_us = esp_timer_get_time() + timeout_us;
     // start mDNS service
-    while (!MDNS.begin(HOSTNAME))
+    while (!MDNS.begin(hostname))
     {
         if (esp_timer_get_time() >= timeout_deadline_us)
         {
@@ -88,10 +88,9 @@ State current_state = State::WAITING_ON_WIFI;
 // ------------ startup routine ------------ //
 void setup()
 {
-    // current_state = State::WAITING_ON_WIFI;
-
     // configure GPIO pins
-    pinMode(WIFI_STATUS_PIN, OUTPUT);
+    pinMode(WIFI_STATUS_LED_PIN, OUTPUT);
+    pinMode(WINDOW_STATUS_LED_PIN, OUTPUT);
     pinMode(MAGNET_INPUT_PIN, INPUT);
 
 #ifdef __USE_DATA_FABRICATION
@@ -146,19 +145,19 @@ void loop()
         {
             // blink the wifi status LED (green) slowly while waiting for connection
             dot_dot_dot_loop_increment();
-            digitalWrite(WIFI_STATUS_PIN, !digitalRead(WIFI_STATUS_PIN));
+            digitalWrite(WIFI_STATUS_LED_PIN, !digitalRead(WIFI_STATUS_LED_PIN));
             delay(1000);
         }
 
         // EXIT
         serial_logger_print("~~~ WIFI SETUP COMPLETE ~~~", LOG_LEVEL_INFO);
-        log_wifi_info(LOG_LEVEL_DEBUG);
+        log_wifi_info_debug(LOG_LEVEL_DEBUG);
 
         // keep wifi status LED (green) constantly on to signal active connection
-        digitalWrite(WIFI_STATUS_PIN, HIGH);
+        digitalWrite(WIFI_STATUS_LED_PIN, HIGH);
 
         // start mDNS discovery service and set timeout
-        start_mDNS_timeout_us(1000 * 1000);
+        start_mDNS_timeout_us(HOSTNAME, 1000 * 1000);
 
         // continue to launch the webinterface
         web_server_setup();
@@ -176,7 +175,7 @@ void loop()
         // ENTRY
         serial_logger_print("[FSM] Only server idle state", LOG_LEVEL_DEBUG);
         // ...
-
+        uint16_t delay_time_ms = 100;
         // DO
         while (true)
         {
@@ -191,6 +190,8 @@ void loop()
                 serial_logger_print(buffer, LOG_LEVEL_DEBUG);
                 last_pin_status = pin_status;
             }
+
+            identify_loop();
 
             // EXIT
             if (WiFi.status() != WL_CONNECTED)
@@ -210,7 +211,7 @@ void loop()
                 current_state = State::CLOUD_CLIENT_IDLE;
                 break;
             }
-            delay(2000);
+            delay(delay_time_ms);
         }
 
         break;
@@ -223,6 +224,15 @@ void loop()
         delta_time_ms = 5000;
         things_board_routine_deadline_ms = esp_timer_get_time() / 1000 + delta_time_ms;
         serial_logger_print("~~~ CLOUD CONNECTION MADE ~~~", LOG_LEVEL_INFO);
+
+        // start mDNS discovery service and set timeout
+        MDNS.end();
+        char new_host_name[128] = {0};
+        sprintf(new_host_name, "%s-%s", HOSTNAME, get_configured_device_name());
+        start_mDNS_timeout_us(new_host_name, 1000 * 1000);
+        serial_logger_print("\n~~~ SERVER REDONE ~~~", LOG_LEVEL_INFO);
+        sprintf(buffer, "Access your breezely at http://%s ", new_host_name);
+        serial_logger_print(buffer, LOG_LEVEL_INFO);
 
         // DO
         while (get_things_board_connected())
