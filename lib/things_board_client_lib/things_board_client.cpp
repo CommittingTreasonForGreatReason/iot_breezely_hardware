@@ -160,7 +160,7 @@ int things_board_client_setup(char const *access_token)
 }
 
 // setup function to establish connection for new device (initial device provision process)
-int things_board_client_setup_provisioning(char const *device_name, char const *customer_name, char const *used_token)
+int things_board_client_setup_provisioning(const char *device_name, const char *customer_name, const char *used_token)
 {
     // only in disconnected state a reconnection attempt can be made
     if (tb.connected())
@@ -193,11 +193,15 @@ int things_board_client_setup_provisioning(char const *device_name, char const *
 
     provisionRequestSent = prov.Provision_Request(provisionCallback);
     if (provisionRequestSent)
+    {
         Serial.println("send provision request");
+        Serial.println(used_token);
+        Serial.println(device_name);
+    }
 
-    delay(1000);
+    delay(2000);
     tb.disconnect();
-    delay(1000);
+    delay(2000);
     if (!tb.connect(THINGSBOARD_SERVER, used_token, THINGSBOARD_PORT))
     {
         char buffer[64] = {0};

@@ -54,6 +54,9 @@ void log_wifi_info_debug(serial_log_level_t log_level)
 int start_mDNS_timeout_us(const char *hostname, const int64_t timeout_us)
 {
     int64_t timeout_deadline_us = esp_timer_get_time() + timeout_us;
+    char buffer[128] = {0};
+    sprintf(buffer, "Starting MDNS with %s", hostname);
+    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
     // start mDNS service
     while (!MDNS.begin(hostname))
     {
@@ -227,11 +230,10 @@ void loop()
 
         // start mDNS discovery service and set timeout
         MDNS.end();
-        char new_host_name[128] = {0};
-        sprintf(new_host_name, "%s-%s", HOSTNAME, get_configured_device_name());
-        start_mDNS_timeout_us(new_host_name, 1000 * 1000);
+        char *configured_hostname = get_configured_hostname();
+        start_mDNS_timeout_us(configured_hostname, 1000 * 1000);
         serial_logger_print("\n~~~ SERVER REDONE ~~~", LOG_LEVEL_INFO);
-        sprintf(buffer, "Access your breezely at http://%s ", new_host_name);
+        sprintf(buffer, "Access your breezely at http://%s ", configured_hostname);
         serial_logger_print(buffer, LOG_LEVEL_INFO);
 
         // DO

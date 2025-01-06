@@ -66,6 +66,22 @@ function fetchAndDisplaySensorMeasurements() {
     xhttp.send();
 }
 
+function fetchAndDisplayCloudConnectionStatus() {
+    xhttp.onreadystatechange = function () {
+        if (this.readyState == 4 && this.status == 200) {
+            // display the receceived json encoded measurements on the webpage
+            let response = JSON.parse(this.responseText);
+            console.log("updating cloud connection status ...");
+            document.getElementById("cloud-connection-status").innerHTML = response['cloud-connection-status'];
+            document.getElementById("configured-hostname").innerHTML = response['configured-hostname'];
+            document.getElementById("configured-hyperlink").setAttribute("href", response['configured-hyperlink'])
+            // ...
+        }
+    };
+    xhttp.open("GET", "/cloud_connection_status");
+    xhttp.send();
+}
+
 // setup periodic background polling of sensor values using AJAX
 let pollingPeriod = 4000;
 setInterval(fetchAndDisplaySensorMeasurements, pollingPeriod);

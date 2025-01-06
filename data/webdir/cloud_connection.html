@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Breezely - Settings</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header>
+        <h1>Breezely Device Management</h1>
+    </header>
+
+    <!-- main section in the middle -->
+    <main>
+        <p id="cloud-connection-status">...</p>
+        <p id="configured-hostname"></p>
+        <div>
+            <br>
+            <nav>
+                <a id="configured-hyperlink" href="/">Redirect to Start Page</a>
+            </nav>
+        </div>
+
+    </main>
+
+    <!-- execute the script for dynamic updates -->
+    <script src="script.js" onload="fetchAndDisplayCloudConnectionStatus()"></script>
+
+    <!-- static section at the bottom for impressum, references, etc. -->
+    <footer>
+        <p>Breezely Management Interface &copy; 2024</p>
+    </footer>
+
+</body>
+
+</html>

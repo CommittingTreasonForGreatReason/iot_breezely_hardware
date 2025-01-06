@@ -22,6 +22,7 @@ AsyncWebServer server(80);
 char configured_token[32] = {0};
 char configured_device_name[32] = {0};
 char configured_customer_name[32] = {0};
+char configured_host_name[128] = {0};
 bool cloud_connected = false;
 
 uint16_t identify_start_ms = 0;
@@ -30,9 +31,9 @@ uint16_t last_identify_toggle_ms = 0;
 
 String device_name = "";
 
-char *get_configured_device_name()
+char *get_configured_hostname()
 {
-    return configured_device_name;
+    return configured_host_name;
 }
 
 void identify_loop()
@@ -52,11 +53,6 @@ void identify_loop()
     }
 }
 
-String outputState(int output)
-{
-    return digitalRead(output) ? "checked" : "";
-}
-
 void send_http_response_json_format(AsyncWebServerRequest *request, int code, JsonDocument *jsonDoc, bool printResponse = false)
 {
     String jsonResponse;
@@ -74,7 +70,6 @@ void on_http_not_found(AsyncWebServerRequest *request)
     request->send(404, "text/plain", "Not found");
 }
 
-// callback function to write the digital output pin state via GET request
 void on_http_identify(AsyncWebServerRequest *request)
 {
     serial_logger_print("identify invoked", LOG_LEVEL_DEBUG);
@@ -139,6 +134,24 @@ void on_http_fetch_settings(AsyncWebServerRequest *request)
     jsonDoc["device-name"] = (strlen(configured_device_name) >= 5) ? configured_device_name : "not set";
     jsonDoc["customer-name"] = (strlen(configured_customer_name) >= 5) ? configured_customer_name : "not set";
     // ...
+
+    send_http_response_json_format(request, 200, &jsonDoc);
+}
+
+void on_http_fetch_cloud_connection_status(AsyncWebServerRequest *request)
+{
+    Serial.println("--> cloud connection status request from client");
+
+    JsonDocument jsonDoc;
+    jsonDoc["cloud-connection-status"] = cloud_connected ? "cloud connection made" : "unable to connect to cloud";
+    jsonDoc["configured-hostname"] = cloud_connected ? configured_host_name : "";
+
+    char old_hyperlink[128] = {0};
+    char new_hyperlink[128] = {0};
+    sprintf(old_hyperlink, "http://%s", HOSTNAME);
+    sprintf(new_hyperlink, "http://%s", configured_host_name);
+    // ...
+    jsonDoc["configured-hyperlink"] = cloud_connected ? new_hyperlink : old_hyperlink;
 
     send_http_response_json_format(request, 200, &jsonDoc);
 }
@@ -211,19 +224,28 @@ void on_http_set_device_name(AsyncWebServerRequest *request)
         things_board_client_teardown();
     }
     const char *token = WiFi.macAddress().c_str();
-    cloud_connected = things_board_client_setup_provisioning(input_device_name.c_str(), input_customer_name.c_str(), token) >= 0; //  using mac address as token for now (kindof problematic but oh well (͡ ° ͜ʖ ͡ °) )
-    if (cloud_connected)                                                                                                          // cloud connection has been made :-)
+    // set a new hostname (<default_hostname>-<device_name>)
+    memcpy(configured_device_name, input_device_name.c_str(), input_device_name.length());
+    sprintf(configured_host_name, "%s-%s", HOSTNAME, configured_device_name);
+    bool success = things_board_client_setup_provisioning(input_device_name.c_str(), input_customer_name.c_str(), WiFi.macAddress().c_str()) >= 0; //  using mac address as token for now (kindof problematic but oh well (͡ ° ͜ʖ ͡ °) )
+    if (success)                                                                                                                                   // cloud connection has been made :-)
     {
-        request->send(200, "text/html", "Successfully made cloud connection with device name: " + input_device_name + " | customer name: " + input_customer_name + ".<br><a href=\"/\">Return to Home Page</a>");
         memcpy(configured_device_name, input_device_name.c_str(), input_device_name.length());
         memcpy(configured_customer_name, input_customer_name.c_str(), input_customer_name.length());
         memcpy(configured_token, token, strlen(token));
-        // ...
-        return;
     }
-
-    // cloud connection has NOT been made :-(
-    request->send(200, "text/html", "Tried to make cloud connection with device name: " + input_device_name + " | customer name: " + input_customer_name + " but failed.<br><a href=\"/\">Return to Home Page</a>");
+    else
+    {
+        memset(configured_device_name, 0, 32);
+        memset(configured_host_name, 0, 128);
+    }
+    // respond with seperate cloud connection status display page
+    File html_file = SPIFFS.open("/webdir/cloud_connection.html");
+    uint32_t size = html_file.size();
+    char file_buffer[size] = {0};
+    html_file.readBytes(file_buffer, size);
+    request->send(200, "text/html", file_buffer);
+    cloud_connected = success;
 }
 
 // setup function for the local async webserver
@@ -241,6 +263,7 @@ int web_server_setup()
     // server.on("/set_token", HTTP_GET, on_http_set_token);
     server.on("/set_device_name", HTTP_GET, on_http_set_device_name);
     server.on("/settings", HTTP_GET, on_http_fetch_settings);
+    server.on("/cloud_connection_status", HTTP_GET, on_http_fetch_cloud_connection_status);
 
     server.onNotFound(on_http_not_found);
     server.begin();
