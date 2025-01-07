@@ -14,6 +14,8 @@
 #include "logger.hpp"
 #include "data_communications.hpp"
 
+#include "breezely_persistency.hpp"
+
 constexpr char CREDENTIALS_TYPE[] = "credentialsType";
 constexpr char CREDENTIALS_VALUE[] = "credentialsValue";
 constexpr char CLIENT_ID[] = "clientId";
@@ -73,6 +75,7 @@ void requestTimedOut()
 // for some reason never gets called ???
 void processProvisionResponse(const JsonDocument &data)
 {
+    Serial.println("Received device provision response\n");
     const size_t jsonSize = Helper::Measure_Json(data);
     char buffer[jsonSize];
     serializeJson(data, buffer, jsonSize);
@@ -179,7 +182,7 @@ int things_board_client_setup(char const *access_token)
 }
 
 // setup function to establish connection for new device (initial device provision process)
-int things_board_client_setup_provisioning(const char *device_name, const char *customer_name, const char *used_token)
+int things_board_client_setup_provisioning(const char *device_name, const char *customer_name, const char *token)
 {
     // only in disconnected state a reconnection attempt can be made
     if (tb.connected())
@@ -208,20 +211,16 @@ int things_board_client_setup_provisioning(const char *device_name, const char *
     }
     // const Provision_Callback provisionCallback(Access_Token(), &processProvisionResponse, PROVISION_DEVICE_KEY, PROVISION_DEVICE_SECRET, device_name, REQUEST_TIMEOUT_MICROSECONDS, &requestTimedOut); // doesn't work :(
 
-    const Provision_Callback provisionCallback(Device_Access_Token(), &processProvisionResponse, PROVISION_DEVICE_KEY, PROVISION_DEVICE_SECRET, used_token, device_name, REQUEST_TIMEOUT_MICROSECONDS, &requestTimedOut);
+    const Provision_Callback provisionCallback(Device_Access_Token(), &processProvisionResponse, PROVISION_DEVICE_KEY, PROVISION_DEVICE_SECRET, token, device_name, REQUEST_TIMEOUT_MICROSECONDS, &requestTimedOut);
 
     provisionRequestSent = prov.Provision_Request(provisionCallback);
     if (provisionRequestSent)
-    {
-        Serial.println("send provision request");
-        Serial.println(used_token);
-        Serial.println(device_name);
-    }
+        serial_logger_print("send provision request", LOG_LEVEL_DEBUG);
 
     delay(2000);
     tb.disconnect();
     delay(2000);
-    if (!tb.connect(THINGSBOARD_SERVER, used_token, THINGSBOARD_PORT))
+    if (!tb.connect(THINGSBOARD_SERVER, token, THINGSBOARD_PORT))
     {
         char buffer[64] = {0};
         sprintf(buffer, "Failed to connect to: %s", THINGSBOARD_SERVER);
@@ -244,6 +243,12 @@ int things_board_client_setup_provisioning(const char *device_name, const char *
     }
     tb.sendAttributeData("provisioning_customer", customer_name);
     // return provisionRequestSent ? 0 : -1;
+
+    // store the configured data in FS
+    try_set_stored_device_name(device_name);
+    try_set_stored_customer(customer_name);
+    try_set_stored_token(token);
+    store_config_to_flash();
 
     return 0;
 }

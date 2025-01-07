@@ -3,7 +3,6 @@
 #include <SPIFFS.h>
 #include <WiFi.h>
 #include <ESPmDNS.h>
-
 // local includes
 #include "utils.hpp"
 #include "wifi_manual.hpp"
@@ -14,6 +13,8 @@
 #include "user_config.hpp"
 #include "logger.hpp"
 #include "esp_timer.h"
+
+#include "breezely_persistency.hpp"
 
 #ifdef __USE_DATA_FABRICATION
 #include "data_fabricator.hpp"
@@ -49,6 +50,24 @@ void log_wifi_info_debug(serial_log_level_t log_level)
     serial_logger_print(buffer, log_level);
 
     serial_logger_print("#############################", log_level);
+}
+
+void connect_to_wifi()
+{
+#ifdef __NO_WPS
+    // manual wifi setup (SSID & password hardcoded)
+    if (try_get_stored_wifi_ssid() != nullptr && try_get_stored_wifi_pwd() != nullptr)
+    {
+        serial_logger_print("using Wifi data from flash config file", LOG_LEVEL_DEBUG);
+        wifi_manual_setup(try_get_stored_wifi_ssid(), try_get_stored_wifi_pwd());
+    }
+    else
+    {
+        wifi_manual_setup(WIFI_SSID, WIFI_PASSWORD); // does a manuel setup by using hardcoded SSID and password (see more under lib/user_specific)
+    }
+#else // initial wifi setup via WPS (release mode)
+    wifi_wps_setup();
+#endif
 }
 
 int start_mDNS_timeout_us(const char *hostname, const int64_t timeout_us)
@@ -115,14 +134,10 @@ void setup()
     // launch serial console
     delay(100);
     Serial.begin(115200);
-
-#ifdef __NO_WPS
-    // manual wifi setup (SSID & password hardcoded)
-    wifi_manual_setup(); // does a manuel setup by using hardcoded SSID and password (see more under lib/user_specific)
-#else
-    // initial wifi setup via WPS (release mode)
-    wifi_wps_setup();
-#endif
+    // load permanent config data from flash
+    load_config_from_flash();
+    // connect to the wifi network
+    connect_to_wifi();
 }
 // ------------------------------------------------- //
 
@@ -155,7 +170,12 @@ void loop()
         // EXIT
         serial_logger_print("~~~ WIFI SETUP COMPLETE ~~~", LOG_LEVEL_INFO);
         log_wifi_info_debug(LOG_LEVEL_DEBUG);
-
+        // store wifi data only if not yet stored
+        if (try_get_stored_wifi_ssid() == nullptr || try_get_stored_wifi_pwd() == nullptr)
+        {
+            try_set_stored_wifi_ssid(WIFI_SSID);
+            try_set_stored_wifi_pwd(WIFI_PASSWORD);
+        }
         // keep wifi status LED (green) constantly on to signal active connection
         digitalWrite(WIFI_STATUS_LED_PIN, HIGH);
 
@@ -199,13 +219,7 @@ void loop()
             // EXIT
             if (WiFi.status() != WL_CONNECTED)
             {
-#ifdef __NO_WPS
-                // manual wifi setup (SSID & password hardcoded)
-                wifi_manual_setup(); // does a manuel setup by using hardcoded SSID and password (see more under lib/user_specific)
-#else
-                // initial wifi setup via WPS (release mode)
-                wifi_wps_setup();
-#endif
+                connect_to_wifi();
                 current_state = State::WAITING_ON_WIFI;
                 break;
             }
@@ -213,6 +227,11 @@ void loop()
             {
                 current_state = State::CLOUD_CLIENT_IDLE;
                 break;
+            }
+            else if (try_get_stored_device_name() != nullptr && try_get_stored_customer() != nullptr && try_get_stored_token() != nullptr)
+            {
+                serial_logger_print("using device_name, customer and token from flash config file", LOG_LEVEL_DEBUG);
+                things_board_client_setup_provisioning(try_get_stored_device_name(), try_get_stored_customer(), try_get_stored_token());
             }
             delay(delay_time_ms);
         }
@@ -230,7 +249,12 @@ void loop()
 
         // start mDNS discovery service and set timeout
         MDNS.end();
-        char *configured_hostname = get_configured_hostname();
+        char configured_hostname[128] = {0};
+        if (try_get_stored_device_name() != nullptr)
+            sprintf(configured_hostname, "%s-%s", HOSTNAME, try_get_stored_device_name());
+        else
+            sprintf(configured_hostname, "%s", HOSTNAME);
+
         start_mDNS_timeout_us(configured_hostname, 1000 * 1000);
         serial_logger_print("\n~~~ SERVER REDONE ~~~", LOG_LEVEL_INFO);
         sprintf(buffer, "Access your breezely at http://%s ", configured_hostname);

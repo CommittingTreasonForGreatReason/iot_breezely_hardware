@@ -1,7 +1,7 @@
 {
-    "device_name": "ESP32_Device_Breezely",
-    "wifi_ssid": "Your_SSID",
-    "wifi_password": "Your_PASSWORD",
-    "things_board_access_token": "Your_ACCESSTOKEN"
+    "device_name": "err",
+    "customer": "err",
+    "wifi_ssid": "err",
+    "wifi_password": "err",
+    "token": "err"
 }
-  

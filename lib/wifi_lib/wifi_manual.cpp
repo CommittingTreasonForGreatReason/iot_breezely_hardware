@@ -7,13 +7,13 @@
 #include "logger.hpp"
 
 // method for connection to Wifi via credentials
-int wifi_manual_setup()
+int wifi_manual_setup(char *wifi_ssid, char *wifi_password)
 {
     char buffer[64] = {0};
-    sprintf(buffer, "attempting to connect to WIFI: %s: \n", WIFI_SSID);
+    sprintf(buffer, "attempting to connect to WIFI: %s: \n", wifi_ssid);
     serial_logger_print(buffer, LOG_LEVEL_INFO);
 
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    WiFi.begin(wifi_ssid, wifi_password);
     return 0; // success
 }
 
