@@ -42,8 +42,11 @@ WiFiClient wifiClient;
 // Initalize the Mqtt client instance
 Arduino_MQTT_Client mqttClient(wifiClient);
 
+Server_Side_RPC<3U, 5U> rpc;
+
 Provision<> prov;
-const std::array<IAPI_Implementation *, 1U> apis = {
+const std::array<IAPI_Implementation *, 2U> apis = {
+    &rpc,
     &prov};
 
 // Initalize thingsboard instance based on mqtt client
@@ -54,6 +57,13 @@ constexpr uint64_t REQUEST_TIMEOUT_MICROSECONDS = 5000U * 1000U;
 // device provisioning related stuff
 bool provisionRequestSent = false;
 bool provisionResponseProcessed = false;
+
+void processRpcIdentify(const JsonVariantConst &data, JsonDocument &response)
+{
+    Serial.println("Received the rpc identify state RPC method");
+}
+const std::array<RPC_Callback, 1U> callbacks = {
+    RPC_Callback{"rpcIdentify", processRpcIdentify}};
 
 void requestTimedOut()
 {
@@ -154,6 +164,15 @@ int things_board_client_setup(char const *access_token)
         sprintf(buffer, "Successfully connected with %s", THINGSBOARD_SERVER);
         serial_logger_print(buffer, LOG_LEVEL_DEBUG);
     }
+
+    Serial.println("Subscribing for RPC...");
+    // Perform a subscription. All consequent data processing will happen in
+    if (!rpc.RPC_Subscribe(callbacks.cbegin(), callbacks.cend()))
+    {
+        Serial.println("Failed to subscribe for RPC");
+        return -1;
+    }
+
     // Sending a MAC address as an attribute
     tb.sendAttributeData("macAddress", WiFi.macAddress().c_str());
     return 0;
@@ -216,6 +235,13 @@ int things_board_client_setup_provisioning(const char *device_name, const char *
         serial_logger_print(buffer, LOG_LEVEL_DEBUG);
     }
 
+    Serial.println("Subscribing for RPC...");
+    // Perform a subscription. All consequent data processing will happen in
+    if (!rpc.RPC_Subscribe(callbacks.cbegin(), callbacks.cend()))
+    {
+        Serial.println("Failed to subscribe for RPC");
+        return -1;
+    }
     tb.sendAttributeData("provisioning_customer", customer_name);
     // return provisionRequestSent ? 0 : -1;
 
