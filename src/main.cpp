@@ -96,12 +96,12 @@ void setup()
     pinMode(WINDOW_STATUS_LED_PIN, OUTPUT);
     pinMode(MAGNET_INPUT_PIN, INPUT);
 
-#ifdef __USE_DATA_FABRICATION
-    data_fabricator_setup();
-#else
-    // setup DHT11 sensor for air temperature and humidity
-    dht_sensor_setup();
-#endif
+    #ifdef __USE_DATA_FABRICATION
+        data_fabricator_setup();
+    #else
+        // setup DHT11 sensor for air temperature and humidity
+        dht_sensor_setup();
+    #endif
 
     set_global_log_level(LOG_LEVEL_DEBUG); // <-------------------------------------------------------------------------------- SET LOG LEVEL HERE
 
@@ -136,156 +136,158 @@ void loop()
     // run the global finite state machine in iterative manner
     switch (current_state)
     {
-    case State::WAITING_ON_WIFI:
-    {
-        // ENTRY
-        serial_logger_print("[FSM] Waiting for Wifi state", LOG_LEVEL_DEBUG);
-        // ...
-
-        // DO
-        // wait indefinetely for a wifi connection
-        while (WiFi.status() != WL_CONNECTED)
+        case State::WAITING_ON_WIFI:
         {
-            // blink the wifi status LED (green) slowly while waiting for connection
-            dot_dot_dot_loop_increment();
-            digitalWrite(WIFI_STATUS_LED_PIN, !digitalRead(WIFI_STATUS_LED_PIN));
-            delay(1000);
-        }
+            // ENTRY
+            serial_logger_print("[FSM] Waiting for Wifi state", LOG_LEVEL_DEBUG);
+            // ...
 
-        // EXIT
-        serial_logger_print("~~~ WIFI SETUP COMPLETE ~~~", LOG_LEVEL_INFO);
-        log_wifi_info_debug(LOG_LEVEL_DEBUG);
-
-        // keep wifi status LED (green) constantly on to signal active connection
-        digitalWrite(WIFI_STATUS_LED_PIN, HIGH);
-
-        // start mDNS discovery service and set timeout
-        start_mDNS_timeout_us(HOSTNAME, 1000 * 1000);
-
-        // continue to launch the webinterface
-        web_server_setup();
-        serial_logger_print("\n~~~ SERVER SETUP COMPLETE ~~~", LOG_LEVEL_INFO);
-        sprintf(buffer, "Access your breezely at http://%s ", HOSTNAME);
-        serial_logger_print(buffer, LOG_LEVEL_INFO);
-
-        // transition into ONLY_SERVER_IDLE state
-        current_state = State::ONLY_SERVER_IDLE;
-        break;
-    }
-
-    case State::ONLY_SERVER_IDLE:
-    {
-        // ENTRY
-        serial_logger_print("[FSM] Only server idle state", LOG_LEVEL_DEBUG);
-        // ...
-        uint16_t delay_time_ms = 100;
-        // DO
-        while (true)
-        {
-            // readout the magnetic reed switch and control output pin accordingly
-            static int last_pin_status = LOW;
-            int pin_status = digitalRead(MAGNET_INPUT_PIN);
-
-            // log window state changes to the serial monitor
-            if (pin_status != last_pin_status)
+            // DO
+            // wait indefinetely for a wifi connection
+            while (WiFi.status() != WL_CONNECTED)
             {
-                sprintf(buffer, "updated pin status: %d", pin_status);
-                serial_logger_print(buffer, LOG_LEVEL_DEBUG);
-                last_pin_status = pin_status;
+                // blink the wifi status LED (green) slowly while waiting for connection
+                dot_dot_dot_loop_increment();
+                digitalWrite(WIFI_STATUS_LED_PIN, !digitalRead(WIFI_STATUS_LED_PIN));
+                delay(1000);
             }
-
-            identify_loop();
 
             // EXIT
-            if (WiFi.status() != WL_CONNECTED)
-            {
-#ifdef __NO_WPS
-                // manual wifi setup (SSID & password hardcoded)
-                wifi_manual_setup(); // does a manuel setup by using hardcoded SSID and password (see more under lib/user_specific)
-#else
-                // initial wifi setup via WPS (release mode)
-                wifi_wps_setup();
-#endif
-                current_state = State::WAITING_ON_WIFI;
-                break;
-            }
-            else if (get_things_board_connected())
-            {
-                current_state = State::CLOUD_CLIENT_IDLE;
-                break;
-            }
-            delay(delay_time_ms);
+            serial_logger_print("~~~ WIFI SETUP COMPLETE ~~~", LOG_LEVEL_INFO);
+            log_wifi_info_debug(LOG_LEVEL_DEBUG);
+
+            // keep wifi status LED (green) constantly on to signal active connection
+            digitalWrite(WIFI_STATUS_LED_PIN, HIGH);
+
+            // start mDNS discovery service and set timeout
+            start_mDNS_timeout_us(HOSTNAME, 1000 * 1000);
+
+            // continue to launch the webinterface
+            web_server_setup();
+            serial_logger_print("\n~~~ SERVER SETUP COMPLETE ~~~", LOG_LEVEL_INFO);
+            sprintf(buffer, "Access your breezely at http://%s ", HOSTNAME);
+            serial_logger_print(buffer, LOG_LEVEL_INFO);
+
+            // transition into ONLY_SERVER_IDLE state
+            current_state = State::ONLY_SERVER_IDLE;
+            break;
         }
 
-        break;
-    }
-
-    case State::CLOUD_CLIENT_IDLE:
-    {
-        // ENTRY
-        serial_logger_print("[FSM] Cloud client idle state", LOG_LEVEL_DEBUG);
-        delta_time_ms = 5000;
-        things_board_routine_deadline_ms = esp_timer_get_time() / 1000 + delta_time_ms;
-        serial_logger_print("~~~ CLOUD CONNECTION MADE ~~~", LOG_LEVEL_INFO);
-
-        // start mDNS discovery service and set timeout
-        MDNS.end();
-        char *configured_hostname = get_configured_hostname();
-        start_mDNS_timeout_us(configured_hostname, 1000 * 1000);
-        serial_logger_print("\n~~~ SERVER REDONE ~~~", LOG_LEVEL_INFO);
-        sprintf(buffer, "Access your breezely at http://%s ", configured_hostname);
-        serial_logger_print(buffer, LOG_LEVEL_INFO);
-
-        // DO
-        while (get_things_board_connected())
+        case State::ONLY_SERVER_IDLE:
         {
-#ifdef __USE_DATA_FABRICATION
-            float temperature = data_fabricator_get_temperature();
-            float humidity = data_fabricator_get_humidity();
-            bool window_status = data_fabricator_get_window_status();
-#else
-            // readout the magnetic reed switch and control output pin accordingly
-            static int last_pin_status = LOW;
-            int pin_status = digitalRead(MAGNET_INPUT_PIN);
-            if (pin_status != last_pin_status)
+            // ENTRY
+            serial_logger_print("[FSM] Only server idle state", LOG_LEVEL_DEBUG);
+            // ...
+            uint16_t delay_time_ms = 100;
+            // DO
+            while (true)
             {
-                sprintf(buffer, "updated pin status: %d", pin_status);
-                serial_logger_print(buffer, LOG_LEVEL_DEBUG);
-                last_pin_status = pin_status;
+                // readout the magnetic reed switch and control output pin accordingly
+                static int last_pin_status = LOW;
+                int pin_status = digitalRead(MAGNET_INPUT_PIN);
+
+                // log window state changes to the serial monitor
+                if (pin_status != last_pin_status)
+                {
+                    digitalWrite(WINDOW_STATUS_LED_PIN, pin_status);
+                    sprintf(buffer, "updated pin status: %d", pin_status);
+                    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
+                    last_pin_status = pin_status;
+                }
+
+                identify_loop();
+
+                // EXIT
+                if (WiFi.status() != WL_CONNECTED)
+                {
+                    #ifdef __NO_WPS
+                        // manual wifi setup (SSID & password hardcoded)
+                        wifi_manual_setup(); // does a manuel setup by using hardcoded SSID and password (see more under lib/user_specific)
+                    #else
+                        // initial wifi setup via WPS (release mode)
+                        wifi_wps_setup();
+                    #endif
+                    current_state = State::WAITING_ON_WIFI;
+                    break;
+                }
+                else if (get_things_board_connected())
+                {
+                    current_state = State::CLOUD_CLIENT_IDLE;
+                    break;
+                }
+                delay(delay_time_ms);
             }
 
-            float temperature = dht_sensor_get_temperature();
-            float humidity = dht_sensor_get_humidity();
-            bool window_status = (pin_status == 1);
-
-#endif
-            if (things_board_routine_deadline_ms <= esp_timer_get_time() / 1000)
-            {
-                things_board_client_routine(temperature, humidity, window_status);
-                things_board_routine_deadline_ms = esp_timer_get_time() / 1000 + delta_time_ms;
-            }
-            delay(100);
+            break;
         }
 
-        // cloud connection lost
-        current_state = State::ONLY_SERVER_IDLE;
+        case State::CLOUD_CLIENT_IDLE:
+        {
+            // ENTRY
+            serial_logger_print("[FSM] Cloud client idle state", LOG_LEVEL_DEBUG);
+            delta_time_ms = 5000;
+            things_board_routine_deadline_ms = esp_timer_get_time() / 1000 + delta_time_ms;
+            serial_logger_print("~~~ CLOUD CONNECTION MADE ~~~", LOG_LEVEL_INFO);
 
-        // EXIT
-        break;
-    }
+            // start mDNS discovery service and set timeout
+            MDNS.end();
+            char *configured_hostname = get_configured_hostname();
+            start_mDNS_timeout_us(configured_hostname, 1000 * 1000);
+            serial_logger_print("\n~~~ SERVER REDONE ~~~", LOG_LEVEL_INFO);
+            sprintf(buffer, "Access your breezely at http://%s ", configured_hostname);
+            serial_logger_print(buffer, LOG_LEVEL_INFO);
 
-    default:
-    {
-        // ENTRY
-        // ...
+            // DO
+            while (get_things_board_connected())
+            {
+                #ifdef __USE_DATA_FABRICATION
+                    float temperature = data_fabricator_get_temperature();
+                    float humidity = data_fabricator_get_humidity();
+                    bool window_status = data_fabricator_get_window_status();
+                #else
+                    // readout the magnetic reed switch and control output pin accordingly
+                    static int last_pin_status = LOW;
+                    int pin_status = digitalRead(MAGNET_INPUT_PIN);
+                    if (pin_status != last_pin_status)
+                    {
+                        digitalWrite(WINDOW_STATUS_LED_PIN, pin_status);
+                        sprintf(buffer, "updated pin status: %d", pin_status);
+                        serial_logger_print(buffer, LOG_LEVEL_DEBUG);
+                        last_pin_status = pin_status;
+                    }
 
-        // DO
-        serial_logger_print("\n[FSM] unknown state!", LOG_LEVEL_WARNING);
+                    float temperature = dht_sensor_get_temperature();
+                    float humidity = dht_sensor_get_humidity();
+                    bool window_status = (pin_status == 1);
+                #endif
 
-        // EXIT
-        // ...
-        break;
-    }
+                if (things_board_routine_deadline_ms <= esp_timer_get_time() / 1000)
+                {
+                    things_board_client_routine(temperature, humidity, window_status);
+                    things_board_routine_deadline_ms = esp_timer_get_time() / 1000 + delta_time_ms;
+                }
+                delay(100);
+            }
+
+            // cloud connection lost
+            current_state = State::ONLY_SERVER_IDLE;
+
+            // EXIT
+            break;
+        }
+
+        default:
+        {
+            // ENTRY
+            // ...
+
+            // DO
+            serial_logger_print("\n[FSM] unknown state!", LOG_LEVEL_WARNING);
+
+            // EXIT
+            // ...
+            break;
+        }
     }
 
     delay(100);
