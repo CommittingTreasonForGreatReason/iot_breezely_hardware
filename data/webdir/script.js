@@ -40,7 +40,8 @@ function fetchAndDisplaySettings() {
             // display the receceived json encoded device info
             let response = JSON.parse(this.responseText);
             document.getElementById("token").innerHTML = response["token"];
-            document.getElementById("device_name").innerHTML = response["device_name"];
+            document.getElementById("device-name").innerHTML = response["device-name"];
+            document.getElementById("customer-name").innerHTML = response["customer-name"];
             // ...
         }
     }
@@ -62,6 +63,22 @@ function fetchAndDisplaySensorMeasurements() {
         }
     };
     xhttp.open("GET", "/sensor_read");
+    xhttp.send();
+}
+
+function fetchAndDisplayCloudConnectionStatus() {
+    xhttp.onreadystatechange = function () {
+        if (this.readyState == 4 && this.status == 200) {
+            // display the receceived json encoded measurements on the webpage
+            let response = JSON.parse(this.responseText);
+            console.log("updating cloud connection status ...");
+            document.getElementById("cloud-connection-status").innerHTML = response['cloud-connection-status'];
+            document.getElementById("configured-hostname").innerHTML = response['configured-hostname'];
+            document.getElementById("configured-hyperlink").setAttribute("href", response['configured-hyperlink'])
+            // ...
+        }
+    };
+    xhttp.open("GET", "/cloud_connection_status");
     xhttp.send();
 }
 

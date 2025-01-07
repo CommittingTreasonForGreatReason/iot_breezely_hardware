@@ -6,20 +6,51 @@
 #include <ArduinoJson.h>
 
 #include "web_server.hpp"
-#include "dht_sensor.hpp"
 #include "things_board_client.hpp"
 #include "user_config.hpp"
 #include "logger.hpp"
 
+#ifdef __USE_DATA_FABRICATION
+#include "data_fabricator.hpp"
+#else
+#include "dht_sensor.hpp"
+#endif
+
 // define http server instance on default port 80
 AsyncWebServer server(80);
+
+char configured_token[32] = {0};
+char configured_device_name[32] = {0};
+char configured_customer_name[32] = {0};
+char configured_host_name[128] = {0};
 bool cloud_connected = false;
+
+uint16_t identify_start_ms = 0;
+uint16_t last_identify_toggle_ms = 0;
+#define IDENTIFY_DURATION_MS 5000
 
 String device_name = "";
 
-String outputState(int output)
+char *get_configured_hostname()
 {
-    return digitalRead(output) ? "checked" : "";
+    return configured_host_name;
+}
+
+void identify_loop()
+{
+    uint64_t current_time_ms = esp_timer_get_time() / 1000;
+    if (identify_start_ms + IDENTIFY_DURATION_MS > current_time_ms)
+    {
+        if (current_time_ms - last_identify_toggle_ms > 100)
+        {
+            digitalWrite(WINDOW_STATUS_LED_PIN, !digitalRead(WINDOW_STATUS_LED_PIN)); // toggle
+            last_identify_toggle_ms = current_time_ms;
+        }
+    }
+    else
+    {
+        digitalWrite(WINDOW_STATUS_LED_PIN, LOW);
+    }
 }
 
 void send_http_response_json_format(AsyncWebServerRequest *request, int code, JsonDocument *jsonDoc, bool printResponse = false)
@@ -39,53 +70,16 @@ void on_http_not_found(AsyncWebServerRequest *request)
     request->send(404, "text/plain", "Not found");
 }
 
-// callback for login attempts
-void on_http_login(AsyncWebServerRequest *request)
+void on_http_identify(AsyncWebServerRequest *request)
 {
-    String input_username = "No message sent";
-    String input_password = "No message sent";
-    // GET username value on <ESP_IP>/get?username=<inputMessage>
-    if (request->hasParam(USERNAME_INPUT_NAME))
-    {
-        input_username = request->getParam(USERNAME_INPUT_NAME)->value();
-    }
-    // GET password value on <ESP_IP>/get?password=<inputMessage>
-    if (request->hasParam(PASSWORD_INPUT_NAME))
-    {
-        input_password = request->getParam(PASSWORD_INPUT_NAME)->value();
-    }
-    char buffer[64] = {0};
-    sprintf(buffer, "username: %s", input_username);
-    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
-    sprintf(buffer, "password: %s", input_password);
-    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
+    serial_logger_print("identify invoked", LOG_LEVEL_DEBUG);
+    identify_start_ms = esp_timer_get_time() / 1000;
 
-    request->send(200, "text/html", "HTTP GET request with user login send to esp32 (username: " + input_username + " | password: " + input_password + ")<br><a href=\"/\">Return to Home Page</a>");
-}
-
-// callback function to write the digital output pin state via GET request
-void on_http_gpio_write(AsyncWebServerRequest *request)
-{
-    String output_message;
-    String state_message;
-    // GET input1 value on <ESP_IP>/gpio_update?output=<output_message>&state=<state_message>
-    if (request->hasParam(OUTPUT_NAME) && request->hasParam(STATE_NAME))
-    {
-        output_message = request->getParam(OUTPUT_NAME)->value();
-        state_message = request->getParam(STATE_NAME)->value();
-        digitalWrite(output_message.toInt(), state_message.toInt());
-    }
-    else
-    {
-        output_message = "No message sent";
-        state_message = "No message sent";
-    }
-
-    char buffer[64] = {0};
-    sprintf(buffer, "GPIO: %s -> %s", output_message, state_message);
-    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
-
-    request->send(200, "text/plain", "OK");
+    File html_file = SPIFFS.open("/webdir/index.html");
+    uint32_t size = html_file.size();
+    char buffer[size] = {0};
+    html_file.readBytes(buffer, size);
+    request->send(200, "text/html", buffer);
 }
 
 // callback function for sending sensor measurements to the browser on demand
@@ -93,13 +87,19 @@ void on_http_sensor_read(AsyncWebServerRequest *request)
 {
     serial_logger_print("-- > sensor read request from client", LOG_LEVEL_DEBUG);
 
-    // StaticJsonDocument<120> jsonDoc;    // --> marked as deprecated, older version of library contains critical bugs !!!
-
     // store sensor data as dictionary of key-value-pairs
     JsonDocument jsonDoc;
+
+#ifdef __USE_DATA_FABRICATION
+    jsonDoc["window-state"] = data_fabricator_get_window_status() ? "open" : "closed";
+    jsonDoc["air-temperature"] = data_fabricator_get_temperature();
+    jsonDoc["air-humidity"] = data_fabricator_get_humidity();
+#else
     jsonDoc["window-state"] = digitalRead(MAGNET_INPUT_PIN) == HIGH ? "open" : "closed";
     jsonDoc["air-temperature"] = dht_sensor_get_temperature();
     jsonDoc["air-humidity"] = dht_sensor_get_humidity();
+#endif
+
     // ...
 
     // send http response with json encoded payload
@@ -110,8 +110,6 @@ void on_http_sensor_read(AsyncWebServerRequest *request)
 void on_http_fetch_device_info(AsyncWebServerRequest *request)
 {
     Serial.println("--> device info request from client");
-
-    // StaticJsonDocument<200> jsonDoc;    // --> marked as deprecated, older version of library contains critical bugs !!!
 
     JsonDocument jsonDoc;
     jsonDoc["device-name"] = device_name;
@@ -131,16 +129,33 @@ void on_http_fetch_settings(AsyncWebServerRequest *request)
 {
     Serial.println("--> settings request from client");
 
-    // StaticJsonDocument<60> jsonDoc;    // --> marked as deprecated, older version of library contains critical bugs !!!
-
     JsonDocument jsonDoc;
-    jsonDoc["token"] = (get_access_token().length() >= 10) ? get_access_token() : "not configured";
-    jsonDoc["device_name"] = (device_name.length() >= 5) ? device_name : "not set";
+    jsonDoc["token"] = (strlen(configured_token) >= 10) ? configured_token : "not configured";
+    jsonDoc["device-name"] = (strlen(configured_device_name) >= 5) ? configured_device_name : "not set";
+    jsonDoc["customer-name"] = (strlen(configured_customer_name) >= 5) ? configured_customer_name : "not set";
     // ...
 
     send_http_response_json_format(request, 200, &jsonDoc);
 }
 
+void on_http_fetch_cloud_connection_status(AsyncWebServerRequest *request)
+{
+    Serial.println("--> cloud connection status request from client");
+
+    JsonDocument jsonDoc;
+    jsonDoc["cloud-connection-status"] = cloud_connected ? "cloud connection made" : "unable to connect to cloud";
+    jsonDoc["configured-hostname"] = cloud_connected ? configured_host_name : "";
+
+    char old_hyperlink[128] = {0};
+    char new_hyperlink[128] = {0};
+    sprintf(old_hyperlink, "http://%s", HOSTNAME);
+    sprintf(new_hyperlink, "http://%s", configured_host_name);
+    // ...
+    jsonDoc["configured-hyperlink"] = cloud_connected ? new_hyperlink : old_hyperlink;
+
+    send_http_response_json_format(request, 200, &jsonDoc);
+}
+/*
 // callback for things board token authorization request
 void on_http_set_token(AsyncWebServerRequest *request)
 {
@@ -167,14 +182,14 @@ void on_http_set_token(AsyncWebServerRequest *request)
     {
         request->send(200, "text/html", "Successfully made cloud connection with token: " + input_token + ".<br><a href=\"/\">Return to Home Page</a>");
         set_access_token(input_token);      // save the actually valid token
-        // memcpy(configured_token, input_token.c_str(), input_token.length()); 
+        // memcpy(configured_token, input_token.c_str(), input_token.length());
         // ...
         return;
     }
 
     // cloud connection has NOT been made :-(
     request->send(200, "text/html", "Tried to make cloud connection with token: " + input_token + " but failed.<br><a href=\"/\">Return to Home Page</a>");
-}
+}*/
 
 // callback for things board token authorization request
 void on_http_set_device_name(AsyncWebServerRequest *request)
@@ -185,10 +200,22 @@ void on_http_set_device_name(AsyncWebServerRequest *request)
     {
         input_device_name = request->getParam(DEVICE_NAME_INPUT_NAME)->value();
     }
+    String input_customer_name = "";
+    if (request->hasParam(CUSTOMER_NAME_INPUT_NAME))
+    {
+        input_customer_name = request->getParam(CUSTOMER_NAME_INPUT_NAME)->value();
+    }
 
     char buffer[64] = {0};
     sprintf(buffer, "device_name: %s", input_device_name);
     serial_logger_print(buffer, LOG_LEVEL_DEBUG);
+    sprintf(buffer, "customer_name: %s", input_customer_name);
+    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
+    if (input_device_name.length() <= 5 || input_customer_name.length() <= 5) // input names to short
+    {
+        request->send(200, "text/html", "Invalid device name OR customer name length!!! <br><a href=\"/\">Return to Home Page</a>");
+        return;
+    }
 
     // when token is changed then force to reconnect with new one
     if (cloud_connected)
@@ -196,17 +223,29 @@ void on_http_set_device_name(AsyncWebServerRequest *request)
         // tear down connection if already connected with a token
         things_board_client_teardown();
     }
-
-    cloud_connected = things_board_client_setup_provisioning(input_device_name.c_str()) >= 0;
-    if (cloud_connected) // cloud connection has been made :-)
+    const char *token = WiFi.macAddress().c_str();
+    // set a new hostname (<default_hostname>-<device_name>)
+    memcpy(configured_device_name, input_device_name.c_str(), input_device_name.length());
+    sprintf(configured_host_name, "%s-%s", HOSTNAME, configured_device_name);
+    bool success = things_board_client_setup_provisioning(input_device_name.c_str(), input_customer_name.c_str(), WiFi.macAddress().c_str()) >= 0; //  using mac address as token for now (kindof problematic but oh well (͡ ° ͜ʖ ͡ °) )
+    if (success)                                                                                                                                   // cloud connection has been made :-)
     {
-        request->send(200, "text/html", "Successfully made cloud connection with device name: " + input_device_name + ".<br><a href=\"/\">Return to Home Page</a>");
-        device_name = input_device_name;
-        return;
+        memcpy(configured_device_name, input_device_name.c_str(), input_device_name.length());
+        memcpy(configured_customer_name, input_customer_name.c_str(), input_customer_name.length());
+        memcpy(configured_token, token, strlen(token));
     }
-
-    // cloud connection has NOT been made :-(
-    request->send(200, "text/html", "Tried to make cloud connection with device name: " + input_device_name + " but failed.<br><a href=\"/\">Return to Home Page</a>");
+    else
+    {
+        memset(configured_device_name, 0, 32);
+        memset(configured_host_name, 0, 128);
+    }
+    // respond with seperate cloud connection status display page
+    File html_file = SPIFFS.open("/webdir/cloud_connection.html");
+    uint32_t size = html_file.size();
+    char file_buffer[size] = {0};
+    html_file.readBytes(file_buffer, size);
+    request->send(200, "text/html", file_buffer);
+    cloud_connected = success;
 }
 
 // setup function for the local async webserver
@@ -216,15 +255,15 @@ int web_server_setup()
     server.serveStatic("/", SPIFFS, "/webdir").setDefaultFile("index.html");
 
     // define the async callback functions for different routes (= http paths)
-    server.on("/login", HTTP_GET, on_http_login);
-    server.on("/gpio_write", HTTP_GET, on_http_gpio_write);
+    server.on("/identify", HTTP_GET, on_http_identify);
 
     server.on("/sensor_read", HTTP_GET, on_http_sensor_read);
     server.on("/device_info", HTTP_GET, on_http_fetch_device_info);
 
-    server.on("/set_token", HTTP_GET, on_http_set_token);
+    // server.on("/set_token", HTTP_GET, on_http_set_token);
     server.on("/set_device_name", HTTP_GET, on_http_set_device_name);
     server.on("/settings", HTTP_GET, on_http_fetch_settings);
+    server.on("/cloud_connection_status", HTTP_GET, on_http_fetch_cloud_connection_status);
 
     server.onNotFound(on_http_not_found);
     server.begin();
