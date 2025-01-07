@@ -22,9 +22,6 @@ constexpr char CLIENT_USERNAME[] = "userName";
 constexpr char ACCESS_TOKEN_CRED_TYPE[] = "ACCESS_TOKEN";
 constexpr char MQTT_BASIC_CRED_TYPE[] = "MQTT_BASIC";
 
-#define PROVISION_DEVICE_KEY "kk93j7hjoamfytmutt0p"
-#define PROVISION_DEVICE_SECRET "0drapl1rzol43vzyzydd"
-
 // Struct for client connecting after provisioning
 struct Credentials
 {

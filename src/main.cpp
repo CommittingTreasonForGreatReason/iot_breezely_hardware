@@ -195,7 +195,10 @@ void loop()
                     last_pin_status = pin_status;
                 }
 
-                identify_loop();
+                // device identify service only works with closed window (to avoid collission window state indication logic)
+                if(!pin_status) {
+                    identify_loop();
+                }
 
                 // EXIT
                 if (WiFi.status() != WL_CONNECTED)
