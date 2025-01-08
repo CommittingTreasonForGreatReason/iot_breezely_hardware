@@ -129,14 +129,14 @@ char *try_get_stored_device_name()
 }
 char *try_get_stored_wifi_ssid()
 {
-    if (strlen(stored_wifi_ssid) < WIFI_SIZE_MAX || strlen(stored_wifi_ssid) > WIFI_SIZE_MAX)
+    if (strlen(stored_wifi_ssid) < WIFI_SIZE_MIN || strlen(stored_wifi_ssid) > WIFI_SIZE_MAX)
         return nullptr;
 
     return stored_wifi_ssid;
 }
 char *try_get_stored_wifi_pwd()
 {
-    if (strlen(stored_wifi_pwd) < WIFI_SIZE_MAX || strlen(stored_wifi_pwd) > WIFI_SIZE_MAX)
+    if (strlen(stored_wifi_pwd) < WIFI_SIZE_MIN || strlen(stored_wifi_pwd) > WIFI_SIZE_MAX)
         return nullptr;
 
     return stored_wifi_pwd;
