@@ -41,7 +41,6 @@ function fetchAndDisplaySettings() {
             let response = JSON.parse(this.responseText);
             document.getElementById("token").innerHTML = response["token"];
             document.getElementById("device-name").innerHTML = response["device-name"];
-            document.getElementById("customer-name").innerHTML = response["customer-name"];
             // ...
         }
     }
@@ -74,7 +73,7 @@ function fetchAndDisplayCloudConnectionStatus() {
             console.log("updating cloud connection status ...");
             document.getElementById("cloud-connection-status").innerHTML = response['cloud-connection-status'];
             document.getElementById("configured-hostname").innerHTML = response['configured-hostname'];
-            document.getElementById("configured-hyperlink").setAttribute("href", response['configured-hyperlink'])
+            document.getElementById("configured-hyperlink").setAttribute("href", response['configured-hyperlink']);
             // ...
         }
     };
