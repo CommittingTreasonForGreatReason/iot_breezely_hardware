@@ -17,9 +17,6 @@
 
 #include "breezely_persistency.hpp"
 
-#define PROVISION_DEVICE_KEY "oyjtd3506udhrt7afv1p"
-#define PROVISION_DEVICE_SECRET "1v1202a059muuxfmp3f5"
-
 // Struct for client connecting after provisioning
 struct Credentials
 {
