@@ -34,8 +34,9 @@
 #define STATE_NAME "state"
 
 // things board specific env parameters
-#define THINGSBOARD_SERVER "server-malte.duckdns.org"
-#define THINGSBOARD_PORT 5869 // 1883U
+#define THINGSBOARD_SERVER "malteb.ddns.net"
+#define THINGSBOARD_HTTP_PORT 5868
+#define THINGSBOARD_MQTT_PORT 5869
 #define PROVISION_DEVICE_KEY "<prov-key>"                   // can be found in breezely device profile on thingboard admin page
 #define PROVISION_DEVICE_SECRET "<prov-secret>"             // " "
 
