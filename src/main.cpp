@@ -187,7 +187,6 @@ void loop()
         serial_logger_print("\n~~~ SERVER SETUP COMPLETE ~~~", LOG_LEVEL_INFO);
         sprintf(buffer, "Access your breezely at http://%s ", HOSTNAME);
         serial_logger_print(buffer, LOG_LEVEL_INFO);
-
         // transition into ONLY_SERVER_IDLE state
         current_state = State::ONLY_SERVER_IDLE;
         break;
@@ -228,10 +227,10 @@ void loop()
                 current_state = State::CLOUD_CLIENT_IDLE;
                 break;
             }
-            else if (try_get_stored_device_name() != nullptr && try_get_stored_customer() != nullptr && try_get_stored_token() != nullptr)
+            else if (try_get_stored_device_name() != nullptr && try_get_stored_token() != nullptr)
             {
                 serial_logger_print("using device_name, customer and token from flash config file", LOG_LEVEL_DEBUG);
-                things_board_client_setup_provisioning(try_get_stored_device_name(), try_get_stored_customer(), try_get_stored_token());
+                things_board_client_setup_provisioning(try_get_stored_device_name());
             }
             delay(delay_time_ms);
         }
@@ -263,6 +262,7 @@ void loop()
         // DO
         while (get_things_board_connected())
         {
+            identify_loop();
 #ifdef __USE_DATA_FABRICATION
             float temperature = data_fabricator_get_temperature();
             float humidity = data_fabricator_get_humidity();

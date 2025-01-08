@@ -1,11 +1,12 @@
 #include <Arduino.h>
 
-#include <ArduinoHttpClient.h>
+#include <Arduino_Http_Client.h>
 #include <Arduino_MQTT_Client.h>
 #include <Server_Side_RPC.h>
 #include <Attribute_Request.h>
 #include <Shared_Attribute_Update.h>
 #include <ThingsBoard.h>
+#include <ThingsBoardHttp.h>
 #include <WiFi.h>
 
 #include "things_board_client.hpp"
@@ -16,16 +17,8 @@
 
 #include "breezely_persistency.hpp"
 
-constexpr char CREDENTIALS_TYPE[] = "credentialsType";
-constexpr char CREDENTIALS_VALUE[] = "credentialsValue";
-constexpr char CLIENT_ID[] = "clientId";
-constexpr char CLIENT_PASSWORD[] = "password";
-constexpr char CLIENT_USERNAME[] = "userName";
-constexpr char ACCESS_TOKEN_CRED_TYPE[] = "ACCESS_TOKEN";
-constexpr char MQTT_BASIC_CRED_TYPE[] = "MQTT_BASIC";
-
-#define PROVISION_DEVICE_KEY "kk93j7hjoamfytmutt0p"
-#define PROVISION_DEVICE_SECRET "0drapl1rzol43vzyzydd"
+#define PROVISION_DEVICE_KEY "oyjtd3506udhrt7afv1p"
+#define PROVISION_DEVICE_SECRET "1v1202a059muuxfmp3f5"
 
 // Struct for client connecting after provisioning
 struct Credentials
@@ -66,54 +59,6 @@ void processRpcIdentify(const JsonVariantConst &data, JsonDocument &response)
 }
 const std::array<RPC_Callback, 1U> callbacks = {
     RPC_Callback{"rpcIdentify", processRpcIdentify}};
-
-void requestTimedOut()
-{
-    Serial.printf("Provision request timed out did not receive a response in (%llu) microseconds. Ensure client is connected to the MQTT broker\n", REQUEST_TIMEOUT_MICROSECONDS);
-}
-
-// for some reason never gets called ???
-void processProvisionResponse(const JsonDocument &data)
-{
-    Serial.println("Received device provision response\n");
-    const size_t jsonSize = Helper::Measure_Json(data);
-    char buffer[jsonSize];
-    serializeJson(data, buffer, jsonSize);
-    Serial.printf("Received device provision response (%s)\n", buffer);
-
-    if (strncmp(data["status"], "SUCCESS", strlen("SUCCESS")) != 0)
-    {
-        Serial.printf("Provision response contains the error: (%s)\n", data["errorMsg"].as<const char *>());
-        return;
-    }
-
-    if (strncmp(data[CREDENTIALS_TYPE], ACCESS_TOKEN_CRED_TYPE, strlen(ACCESS_TOKEN_CRED_TYPE)) == 0)
-    {
-        credentials.client_id = "";
-        credentials.username = data[CREDENTIALS_VALUE].as<std::string>();
-        credentials.password = "";
-    }
-    else if (strncmp(data[CREDENTIALS_TYPE], MQTT_BASIC_CRED_TYPE, strlen(MQTT_BASIC_CRED_TYPE)) == 0)
-    {
-        auto credentials_value = data[CREDENTIALS_VALUE].as<JsonObjectConst>();
-        credentials.client_id = credentials_value[CLIENT_ID].as<std::string>();
-        credentials.username = credentials_value[CLIENT_USERNAME].as<std::string>();
-        credentials.password = credentials_value[CLIENT_PASSWORD].as<std::string>();
-    }
-    else
-    {
-        char buffer[64] = {0};
-        sprintf(buffer, "Unexpected provision credentialsType: (%s)\n", data[CREDENTIALS_TYPE].as<const char *>());
-        serial_logger_print(buffer, LOG_LEVEL_ERROR);
-        return;
-    }
-
-    if (tb.connected())
-    {
-        tb.disconnect();
-    }
-    provisionResponseProcessed = true;
-}
 
 // getter for the cloud connection status
 bool get_things_board_connected()
@@ -181,10 +126,87 @@ int things_board_client_setup(char const *access_token)
     return 0;
 }
 
-// setup function to establish connection for new device (initial device provision process)
-int things_board_client_setup_provisioning(const char *device_name, const char *customer_name, const char *token)
+int connect_thingsboard_timeout_ms(const int64_t timeout_ms)
 {
+    int64_t timeout_deadline_us = esp_timer_get_time() / 1000 + timeout_ms;
+
+    while (!tb.connect(THINGSBOARD_SERVER, PROV_ACCESS_TOKEN, THINGSBOARD_PORT))
+    {
+        if (esp_timer_get_time() >= timeout_deadline_us)
+        {
+            char buffer[64] = {0};
+            sprintf(buffer, "Failed to connect to: %s", THINGSBOARD_SERVER);
+            serial_logger_print(buffer, LOG_LEVEL_ERROR);
+            return -1;
+        }
+    }
+    char buffer[64] = {0};
+    sprintf(buffer, "Successfully connected with %s", THINGSBOARD_SERVER);
+    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
+}
+
+int provision_http(const char *device_name)
+{
+    // HTTP
+    WiFiClient wifiClient_temp;
+
+    Arduino_HTTP_Client httpClient(wifiClient_temp, THINGSBOARD_SERVER, 5868);
+    int error = httpClient.connect(THINGSBOARD_SERVER, 5868);
+    Serial.println("ERROR is");
+    Serial.println(error);
+    httpClient.set_keep_alive(true);
+    JsonDocument jsonDoc;
+    jsonDoc["deviceName"] = String(device_name);
+    jsonDoc["provisionDeviceKey"] = PROVISION_DEVICE_KEY;
+    jsonDoc["provisionDeviceSecret"] = PROVISION_DEVICE_SECRET;
+
+    String jsonString;
+    serializeJson(jsonDoc, jsonString);
+    error = httpClient.post("/api/v1/provision", "application/json", jsonString.c_str());
+    Serial.println("ERROR is");
+    Serial.println(error);
+    delay(1000);
+    Serial.println("Status code is");
+    Serial.println(httpClient.get_response_status_code());
+    Serial.println("Body is");
+    std::string body = httpClient.get_response_body().c_str();
+    Serial.println(body.c_str());
+    JsonDocument newJsonDoc;
+    String body_temp = body.c_str();
+    deserializeJson(newJsonDoc, body_temp);
+    String success = newJsonDoc["status"];
+    Serial.println(success.c_str());
+    if (strcmp(success.c_str(), "SUCCESS") == 0)
+    {
+        Serial.println("Provisioning success!!!");
+        String token_str = newJsonDoc["credentialsValue"];
+        try_set_stored_device_name(device_name);
+        try_set_stored_token(token_str.c_str());
+        store_config_to_flash();
+        httpClient.stop();
+        return 0;
+    }
+    else
+    {
+        httpClient.stop();
+        return 0;
+    }
+}
+
+// setup function to establish connection for new device (initial device provision process)
+int things_board_client_setup_provisioning(const char *device_name)
+{
+    if (try_get_stored_token() == nullptr || try_get_stored_device_name() == nullptr)
+    {
+        int error = provision_http(device_name);
+        if (error < 0)
+            return error;
+        load_config_from_flash();
+    }
+
+    delay(1000);
     // only in disconnected state a reconnection attempt can be made
+    /*
     if (tb.connected())
     {
         char buffer[64] = "Things Board already connected";
@@ -219,8 +241,16 @@ int things_board_client_setup_provisioning(const char *device_name, const char *
 
     delay(2000);
     tb.disconnect();
+
     delay(2000);
-    if (!tb.connect(THINGSBOARD_SERVER, token, THINGSBOARD_PORT))
+    */
+
+    Serial.println(try_get_stored_token());
+    if (try_get_stored_token() == nullptr || try_get_stored_device_name() == nullptr)
+    {
+        return -1;
+    }
+    if (!tb.connect(THINGSBOARD_SERVER, try_get_stored_token(), THINGSBOARD_PORT))
     {
         char buffer[64] = {0};
         sprintf(buffer, "Failed to connect to: %s", THINGSBOARD_SERVER);
@@ -241,15 +271,6 @@ int things_board_client_setup_provisioning(const char *device_name, const char *
         Serial.println("Failed to subscribe for RPC");
         return -1;
     }
-    tb.sendAttributeData("provisioning_customer", customer_name);
-    // return provisionRequestSent ? 0 : -1;
-
-    // store the configured data in FS
-    try_set_stored_device_name(device_name);
-    try_set_stored_customer(customer_name);
-    try_set_stored_token(token);
-    store_config_to_flash();
-
     return 0;
 }
 

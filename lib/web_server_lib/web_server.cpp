@@ -20,10 +20,6 @@
 // define http server instance on default port 80
 AsyncWebServer server(80);
 
-// char configured_token[32] = {0};
-//  char configured_device_name[32] = {0};
-//  char configured_customer_name[32] = {0};
-//  char configured_host_name[128] = {0};
 bool cloud_connected = false;
 
 uint16_t identify_start_ms = 0;
@@ -129,8 +125,6 @@ void on_http_fetch_settings(AsyncWebServerRequest *request)
 
     jsonDoc["device-name"] = (try_get_stored_device_name() != nullptr) ? try_get_stored_device_name() : "not set";
 
-    jsonDoc["customer-name"] = (try_get_stored_customer() != nullptr) ? try_get_stored_customer() : "not set";
-
     jsonDoc["token"] = (try_get_stored_token() != nullptr) ? try_get_stored_token() : "not set";
     // ...
 
@@ -209,18 +203,11 @@ void on_http_set_device_name(AsyncWebServerRequest *request)
     {
         input_device_name = request->getParam(DEVICE_NAME_INPUT_NAME)->value();
     }
-    String input_customer_name = "";
-    if (request->hasParam(CUSTOMER_NAME_INPUT_NAME))
-    {
-        input_customer_name = request->getParam(CUSTOMER_NAME_INPUT_NAME)->value();
-    }
 
     char buffer[64] = {0};
     sprintf(buffer, "device_name: %s", input_device_name);
     serial_logger_print(buffer, LOG_LEVEL_DEBUG);
-    sprintf(buffer, "customer_name: %s", input_customer_name);
-    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
-    if (input_device_name.length() <= 5 || input_customer_name.length() <= 5) // input names to short
+    if (input_device_name.length() <= DEVICE_NAME_SIZE_MIN) // input names to short
     {
         request->send(200, "text/html", "Invalid device name OR customer name length!!! <br><a href=\"/\">Return to Home Page</a>");
         return;
@@ -234,7 +221,7 @@ void on_http_set_device_name(AsyncWebServerRequest *request)
     }
     const char *token = WiFi.macAddress().c_str();
     // set a new hostname (<default_hostname>-<device_name>)
-    bool success = things_board_client_setup_provisioning(input_device_name.c_str(), input_customer_name.c_str(), WiFi.macAddress().c_str()) >= 0; //  using mac address as token for now (kindof problematic but oh well (͡ ° ͜ʖ ͡ °) )
+    bool success = things_board_client_setup_provisioning(input_device_name.c_str()) >= 0; //  using mac address as token for now (kindof problematic but oh well (͡ ° ͜ʖ ͡ °) )
     // respond with seperate cloud connectiosn status display page
     File html_file = SPIFFS.open("/webdir/cloud_connection.html");
     uint32_t size = html_file.size();

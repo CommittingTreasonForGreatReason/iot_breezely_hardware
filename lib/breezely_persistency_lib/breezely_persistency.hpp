@@ -24,14 +24,12 @@ bool store_config_to_flash();
 
 // getters
 char *try_get_stored_device_name();
-char *try_get_stored_customer();
 char *try_get_stored_wifi_ssid();
 char *try_get_stored_wifi_pwd();
 char *try_get_stored_token();
 
 // setters
 bool try_set_stored_device_name(const char *new_device_name);
-bool try_set_stored_customer(const char *new_customer);
 bool try_set_stored_wifi_ssid(const char *new_wifi_ssid);
 bool try_set_stored_wifi_pwd(const char *new_wifi_pwd);
 bool try_set_stored_token(const char *new_token);
