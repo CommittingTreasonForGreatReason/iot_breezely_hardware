@@ -245,6 +245,7 @@ void loop()
         delta_time_ms = 5000;
         things_board_routine_deadline_ms = esp_timer_get_time() / 1000 + delta_time_ms;
         serial_logger_print("~~~ CLOUD CONNECTION MADE ~~~", LOG_LEVEL_INFO);
+        set_cloud_connection_status(true);
 
         // start mDNS discovery service and set timeout
         MDNS.end();

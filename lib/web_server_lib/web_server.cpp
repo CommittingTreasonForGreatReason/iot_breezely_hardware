@@ -22,15 +22,20 @@ AsyncWebServer server(80);
 
 bool cloud_connected = false;
 
-uint16_t identify_start_ms = 0;
-uint16_t last_identify_toggle_ms = 0;
+int64_t identify_start_ms = 0;
+int64_t last_identify_toggle_ms = 0;
 #define IDENTIFY_DURATION_MS 5000
 
 String device_name = "";
 
+void set_cloud_connection_status(bool connected) 
+{
+    cloud_connected = connected;
+}
+
 void identify_loop()
 {
-    uint64_t current_time_ms = esp_timer_get_time() / 1000;
+    int64_t current_time_ms = esp_timer_get_time() / 1000;
     if (identify_start_ms + IDENTIFY_DURATION_MS > current_time_ms)
     {
         if (current_time_ms - last_identify_toggle_ms > 100)
