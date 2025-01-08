@@ -45,9 +45,9 @@
                 <td id="device-name">...</td>
             </tr>
         </table>
-        <form action="/set_device_name" method="get">
-            <input type="text" placeholder="Device Name" name="device-name">
-            <button type="submit">Change Name</button>
+        <form id="dev_form" action="/set_device_name" method="get">
+            <input id="dev_input" type="text" placeholder="Device Name" name="device-name">
+            <button onclick="confirmSetDeviceName()">Change Name</button>
         </form>
 
         <div>

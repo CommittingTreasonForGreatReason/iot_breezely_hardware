@@ -11,6 +11,15 @@ function toggleCheckbox(element) {
     xhttp.send();
 }
 
+function confirmSetDeviceName() {
+    if (window.confirm("Do you really want to configure a new device? This will generate a new device entirely.")) {
+        const element_input = /**@type {HTMLInputElement}*/ (document.getElementsById("dev_input"));
+        const element_form = /**@type {HTMLFormElement}*/ (document.getElementsById("dev_form"));
+        console.log("sending new device name form");
+        element_form.submit();
+    }
+}
+
 // updates device infos display in the background
 function fetchAndDisplayDeviceInfo() {
     console.log("fetching device info stats ...");

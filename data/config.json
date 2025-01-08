@@ -1,5 +1,6 @@
 {
     "device_name": "err",
+    "device_name_extension": "err",
     "wifi_ssid": "err",
     "wifi_password": "err",
     "token": "err"

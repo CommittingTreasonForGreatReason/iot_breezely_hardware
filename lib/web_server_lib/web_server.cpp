@@ -28,7 +28,7 @@ int64_t last_identify_toggle_ms = 0;
 
 String device_name = "";
 
-void set_cloud_connection_status(bool connected) 
+void set_cloud_connection_status(bool connected)
 {
     cloud_connected = connected;
 }
@@ -109,8 +109,29 @@ void on_http_fetch_device_info(AsyncWebServerRequest *request)
     Serial.println("--> device info request from client");
 
     JsonDocument jsonDoc;
-    jsonDoc["device-name"] = device_name;
-    jsonDoc["uptime"] = "dd hh:mm:ss";
+    if (try_get_stored_device_name() != nullptr && try_get_stored_device_name_extension() != nullptr)
+    {
+        char buffer[64] = {0};
+        sprintf(buffer, "%s_%s", try_get_stored_device_name(), try_get_stored_device_name_extension());
+        jsonDoc["device-name"] = buffer;
+    }
+    else
+    {
+        jsonDoc["device-name"] = "not set";
+    }
+
+    uint64_t secsRemaining = millis() / 1000;
+    int32_t runDays = secsRemaining / (3600 * 24);
+    secsRemaining = secsRemaining % (3600 * 24);
+    int32_t runHours = secsRemaining / 3600;
+    secsRemaining = secsRemaining % 3600;
+    int32_t runMinutes = secsRemaining / 60;
+    int32_t runSeconds = secsRemaining % 60;
+
+    char uptime_formatted_str[21];
+    sprintf(uptime_formatted_str, "%02d:%02d:%02d:%02d", runDays, runHours, runMinutes, runSeconds);
+
+    jsonDoc["uptime"] = String(uptime_formatted_str);
     jsonDoc["wifi-ssid"] = WiFi.SSID();
     jsonDoc["ipv4-address"] = WiFi.localIP().toString();
     jsonDoc["mac-address"] = WiFi.macAddress();
@@ -127,9 +148,16 @@ void on_http_fetch_settings(AsyncWebServerRequest *request)
     Serial.println("--> settings request from client");
 
     JsonDocument jsonDoc;
-
-    jsonDoc["device-name"] = (try_get_stored_device_name() != nullptr) ? try_get_stored_device_name() : "not set";
-
+    if (try_get_stored_device_name() != nullptr && try_get_stored_device_name_extension() != nullptr)
+    {
+        char buffer[64] = {0};
+        sprintf(buffer, "%s_%s", try_get_stored_device_name(), try_get_stored_device_name_extension());
+        jsonDoc["device-name"] = buffer;
+    }
+    else
+    {
+        jsonDoc["device-name"] = "not set";
+    }
     jsonDoc["token"] = (try_get_stored_token() != nullptr) ? try_get_stored_token() : "not set";
     // ...
 
@@ -199,9 +227,29 @@ void on_http_set_token(AsyncWebServerRequest *request)
     request->send(200, "text/html", "Tried to make cloud connection with token: " + input_token + " but failed.<br><a href=\"/\">Return to Home Page</a>");
 }*/
 
+String breezely_get_random_string()
+{
+    uint8_t random_numbers[8 + 1];
+    esp_fill_random(random_numbers, 8);
+    for (uint8_t i = 0; i < 8;)
+    {
+        if ((random_numbers[i] > 64 && random_numbers[i] < 91) || (random_numbers[i] > 96 && random_numbers[i] < 123)) // only allow ASCII characters A-z
+        {
+            i++;
+        }
+        else
+        {
+            random_numbers[i] = (uint8_t)esp_random();
+        }
+    }
+    random_numbers[8] = 0; // end string
+    return String((char *)random_numbers);
+}
+
 // callback for things board token authorization request
 void on_http_set_device_name(AsyncWebServerRequest *request)
 {
+    Serial.println("--> set device name request from client");
     // check for token paramater
     String input_device_name = "";
     if (request->hasParam(DEVICE_NAME_INPUT_NAME))
@@ -209,8 +257,11 @@ void on_http_set_device_name(AsyncWebServerRequest *request)
         input_device_name = request->getParam(DEVICE_NAME_INPUT_NAME)->value();
     }
 
+    String generated_device_name_extension = breezely_get_random_string();
+
+    String extended_device_name = input_device_name + "_" + generated_device_name_extension;
     char buffer[64] = {0};
-    sprintf(buffer, "device_name: %s", input_device_name);
+    sprintf(buffer, "extended_device_name: %s", extended_device_name.c_str());
     serial_logger_print(buffer, LOG_LEVEL_DEBUG);
     if (input_device_name.length() <= DEVICE_NAME_SIZE_MIN) // input names to short
     {
@@ -218,15 +269,19 @@ void on_http_set_device_name(AsyncWebServerRequest *request)
         return;
     }
 
+    if (extended_device_name.length() > DEVICE_NAME_SIZE_MAX) // input names to short
+    {
+        request->send(200, "text/html", "Invalid device name OR customer name length!!! <br><a href=\"/\">Return to Home Page</a>");
+        return;
+    }
     // when token is changed then force to reconnect with new one
     if (cloud_connected)
     {
         // tear down connection if already connected with a token
         things_board_client_teardown();
     }
-    const char *token = WiFi.macAddress().c_str();
     // set a new hostname (<default_hostname>-<device_name>)
-    bool success = things_board_client_setup_provisioning(input_device_name.c_str()) >= 0; //  using mac address as token for now (kindof problematic but oh well (͡ ° ͜ʖ ͡ °) )
+    bool success = things_board_client_setup_provisioning(input_device_name.c_str(), generated_device_name_extension.c_str(), true) >= 0; // true for force profisioning
     // respond with seperate cloud connectiosn status display page
     File html_file = SPIFFS.open("/webdir/cloud_connection.html");
     uint32_t size = html_file.size();
