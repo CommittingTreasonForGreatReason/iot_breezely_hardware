@@ -96,7 +96,7 @@ int things_board_client_setup(char const *access_token)
     sprintf(buffer, "Connecting to: %s with token %s", THINGSBOARD_SERVER, access_token);
     serial_logger_print(buffer, LOG_LEVEL_DEBUG);
 
-    if (!tb.connect(THINGSBOARD_SERVER, access_token, THINGSBOARD_PORT))
+    if (!tb.connect(THINGSBOARD_SERVER, access_token, THINGSBOARD_MQTT_PORT))
     {
         char buffer[64] = {0};
         sprintf(buffer, "Failed to connect to: %s", THINGSBOARD_SERVER);
@@ -127,7 +127,7 @@ int connect_thingsboard_timeout_ms(const int64_t timeout_ms)
 {
     int64_t timeout_deadline_us = esp_timer_get_time() / 1000 + timeout_ms;
 
-    while (!tb.connect(THINGSBOARD_SERVER, PROV_ACCESS_TOKEN, THINGSBOARD_PORT))
+    while (!tb.connect(THINGSBOARD_SERVER, PROV_ACCESS_TOKEN, THINGSBOARD_MQTT_PORT))
     {
         if (esp_timer_get_time() >= timeout_deadline_us)
         {
@@ -140,20 +140,24 @@ int connect_thingsboard_timeout_ms(const int64_t timeout_ms)
     char buffer[64] = {0};
     sprintf(buffer, "Successfully connected with %s", THINGSBOARD_SERVER);
     serial_logger_print(buffer, LOG_LEVEL_DEBUG);
+    return 0;
 }
 
-int provision_http(const char *device_name)
+int provision_http(const char *device_name, const char *device_name_extension)
 {
     // HTTP
     WiFiClient wifiClient_temp;
 
-    Arduino_HTTP_Client httpClient(wifiClient_temp, THINGSBOARD_SERVER, 5868);
-    int error = httpClient.connect(THINGSBOARD_SERVER, 5868);
+    Arduino_HTTP_Client httpClient(wifiClient_temp, THINGSBOARD_SERVER, THINGSBOARD_HTTP_PORT);
+    int error = httpClient.connect(THINGSBOARD_SERVER, THINGSBOARD_HTTP_PORT);
     Serial.println("ERROR is");
     Serial.println(error);
     httpClient.set_keep_alive(true);
     JsonDocument jsonDoc;
-    jsonDoc["deviceName"] = String(device_name);
+    char buffer[64] = {0};
+    sprintf(buffer, "%s_%s", device_name, device_name_extension);
+
+    jsonDoc["deviceName"] = String(buffer);
     jsonDoc["provisionDeviceKey"] = PROVISION_DEVICE_KEY;
     jsonDoc["provisionDeviceSecret"] = PROVISION_DEVICE_SECRET;
 
@@ -178,6 +182,7 @@ int provision_http(const char *device_name)
         Serial.println("Provisioning success!!!");
         String token_str = newJsonDoc["credentialsValue"];
         try_set_stored_device_name(device_name);
+        try_set_stored_device_name_extension(device_name_extension);
         try_set_stored_token(token_str.c_str());
         store_config_to_flash();
         httpClient.stop();
@@ -191,11 +196,11 @@ int provision_http(const char *device_name)
 }
 
 // setup function to establish connection for new device (initial device provision process)
-int things_board_client_setup_provisioning(const char *device_name)
+int things_board_client_setup_provisioning(const char *device_name, const char *device_name_extension, bool force)
 {
-    if (try_get_stored_token() == nullptr || try_get_stored_device_name() == nullptr)
+    if (try_get_stored_token() == nullptr || try_get_stored_device_name() == nullptr || try_get_stored_device_name_extension() == nullptr || force)
     {
-        int error = provision_http(device_name);
+        int error = provision_http(device_name, device_name_extension);
         if (error < 0)
             return error;
         load_config_from_flash();
@@ -247,7 +252,7 @@ int things_board_client_setup_provisioning(const char *device_name)
     {
         return -1;
     }
-    if (!tb.connect(THINGSBOARD_SERVER, try_get_stored_token(), THINGSBOARD_PORT))
+    if (!tb.connect(THINGSBOARD_SERVER, try_get_stored_token(), THINGSBOARD_MQTT_PORT))
     {
         char buffer[64] = {0};
         sprintf(buffer, "Failed to connect to: %s", THINGSBOARD_SERVER);

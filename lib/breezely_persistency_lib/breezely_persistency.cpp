@@ -5,6 +5,7 @@
 
 // config parameters default definitions //
 char stored_device_name[DEVICE_NAME_SIZE_MAX + 1] = {0};
+char stored_device_name_extension[DEVICE_NAME_EXTENSION_SIZE + 1] = {0};
 char stored_wifi_ssid[WIFI_SIZE_MAX + 1] = {0};
 char stored_wifi_pwd[WIFI_SIZE_MAX + 1] = {0};
 char stored_token[TOKEN_SIZE_MAX + 1] = {0};
@@ -54,10 +55,12 @@ bool load_config_from_flash()
 
     // extract all config parameters and store them in RAM
     String device_name_str = jsonDoc["device_name"];
+    String device_name_extension_str = jsonDoc["device_name_extension"];
     String wifi_ssid_str = jsonDoc["wifi_ssid"];
     String wifi_password_str = jsonDoc["wifi_password"];
     String token_str = jsonDoc["token"];
     memcpy(stored_device_name, device_name_str.c_str(), device_name_str.length());
+    memcpy(stored_device_name_extension, device_name_extension_str.c_str(), device_name_extension_str.length());
     memcpy(stored_wifi_ssid, wifi_ssid_str.c_str(), wifi_ssid_str.length());
     memcpy(stored_wifi_pwd, wifi_password_str.c_str(), wifi_password_str.length());
     memcpy(stored_token, token_str.c_str(), token_str.length());
@@ -96,6 +99,7 @@ bool store_config_to_flash()
 
     // extract all config parameters and store them in RAM
     jsonDoc["device_name"] = stored_device_name;
+    jsonDoc["device_name_extension"] = stored_device_name_extension;
     jsonDoc["wifi_ssid"] = stored_wifi_ssid;
     jsonDoc["wifi_password"] = stored_wifi_pwd;
     jsonDoc["token"] = stored_token;
@@ -127,6 +131,13 @@ char *try_get_stored_device_name()
 
     return stored_device_name;
 }
+char *try_get_stored_device_name_extension()
+{
+    if (strlen(stored_device_name_extension) != DEVICE_NAME_EXTENSION_SIZE)
+        return nullptr;
+
+    return stored_device_name_extension;
+}
 char *try_get_stored_wifi_ssid()
 {
     if (strlen(stored_wifi_ssid) < WIFI_SIZE_MIN || strlen(stored_wifi_ssid) > WIFI_SIZE_MAX)
@@ -151,9 +162,18 @@ char *try_get_stored_token()
 // setters
 bool try_set_stored_device_name(const char *new_device_name)
 {
-    if (strlen(new_device_name) >= DEVICE_NAME_SIZE_MIN) //&& strlen(new_device_name) <= DEVICE_NAME_SIZE_MAX)
+    if (strlen(new_device_name) >= DEVICE_NAME_SIZE_MIN && strlen(new_device_name) <= DEVICE_NAME_SIZE_MAX)
     {
         memcpy(stored_device_name, new_device_name, strlen(new_device_name));
+        return true;
+    }
+    return false;
+}
+bool try_set_stored_device_name_extension(const char *new_device_name_extension)
+{
+    if (strlen(new_device_name_extension) == DEVICE_NAME_EXTENSION_SIZE) //&& strlen(new_device_name) <= DEVICE_NAME_SIZE_MAX)
+    {
+        memcpy(stored_device_name_extension, new_device_name_extension, strlen(new_device_name_extension));
         return true;
     }
     return false;
