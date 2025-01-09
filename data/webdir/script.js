@@ -1,19 +1,8 @@
 // create global http instance for AJAX requests
 const xhttp = new XMLHttpRequest();
 
-// legacy function to handle checkbox change events 
-function toggleCheckbox(element) {
-    if (element.checked) {
-        xhttp.open("GET", "/gpio_update?output=" + element.id + "&state=1");
-    } else {
-        xhttp.open("GET", "/gpio_update?output=" + element.id + "&state=0");
-    }
-    xhttp.send();
-}
-
 function confirmSetDeviceName() {
     if (window.confirm("Do you really want to configure a new device? This will generate a new device entirely.")) {
-        const element_input = /**@type {HTMLInputElement}*/ (document.getElementsById("dev_input"));
         const element_form = /**@type {HTMLFormElement}*/ (document.getElementsById("dev_form"));
         console.log("sending new device name form");
         element_form.submit();
@@ -82,7 +71,11 @@ function fetchAndDisplayCloudConnectionStatus() {
             console.log("updating cloud connection status ...");
             document.getElementById("cloud-connection-status").innerHTML = response['cloud-connection-status'];
             document.getElementById("configured-hostname").innerHTML = response['configured-hostname'];
-            document.getElementById("configured-hyperlink").setAttribute("href", response['configured-hyperlink']);
+            if (response['configured-hostname'] != "") {
+                document.getElementById("configured-hyperlink-message").innerHTML = "Make sure to save the new hyperlink as the old hyperlink will be reused for new devices";
+                document.getElementById("configured-hyperlink").innerHTML = response['configured-hyperlink'];
+            }
+            document.getElementById("configured-hyperlink-redirect").setAttribute("href", response['configured-hyperlink']);
             // ...
         }
     };

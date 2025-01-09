@@ -26,8 +26,6 @@ int64_t identify_start_ms = 0;
 int64_t last_identify_toggle_ms = 0;
 #define IDENTIFY_DURATION_MS 5000
 
-String device_name = "";
-
 void set_cloud_connection_status(bool connected)
 {
     cloud_connected = connected;
@@ -191,56 +189,18 @@ void on_http_fetch_cloud_connection_status(AsyncWebServerRequest *request)
 
     send_http_response_json_format(request, 200, &jsonDoc);
 }
-/*
-// callback for things board token authorization request
-void on_http_set_token(AsyncWebServerRequest *request)
-{
-    // check for token paramater
-    String input_token = "";
-    if (request->hasParam(TOKEN_INPUT_NAME))
-    {
-        input_token = request->getParam(TOKEN_INPUT_NAME)->value();
-    }
 
-    char buffer[64] = {0};
-    sprintf(buffer, "token: %s", input_token);
-    serial_logger_print(buffer, LOG_LEVEL_DEBUG);
-
-    // when token is changed then force to reconnect with new one
-    if (cloud_connected)
-    {
-        // tear down connection if already connected with a token
-        things_board_client_teardown();
-    }
-
-    cloud_connected = (things_board_client_setup(input_token.c_str()) >= 0);
-    if (cloud_connected) // cloud connection has been made :-)
-    {
-        request->send(200, "text/html", "Successfully made cloud connection with token: " + input_token + ".<br><a href=\"/\">Return to Home Page</a>");
-        set_access_token(input_token);      // save the actually valid token
-        // memcpy(configured_token, input_token.c_str(), input_token.length());
-        // ...
-        return;
-    }
-
-    // cloud connection has NOT been made :-(
-    request->send(200, "text/html", "Tried to make cloud connection with token: " + input_token + " but failed.<br><a href=\"/\">Return to Home Page</a>");
-}*/
-
+char allowed_characters[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz123456789";
 String breezely_get_random_string()
 {
     uint8_t random_numbers[8 + 1];
     esp_fill_random(random_numbers, 8);
     for (uint8_t i = 0; i < 8;)
     {
-        if ((random_numbers[i] > 64 && random_numbers[i] < 91) || (random_numbers[i] > 96 && random_numbers[i] < 123)) // only allow ASCII characters A-z
-        {
+        if (strchr(allowed_characters, random_numbers[i]) != NULL)
             i++;
-        }
         else
-        {
             random_numbers[i] = (uint8_t)esp_random();
-        }
     }
     random_numbers[8] = 0; // end string
     return String((char *)random_numbers);
@@ -280,8 +240,9 @@ void on_http_set_device_name(AsyncWebServerRequest *request)
         // tear down connection if already connected with a token
         things_board_client_teardown();
     }
+    serial_logger_print("starting thingsboard client", LOG_LEVEL_DEBUG);
     // set a new hostname (<default_hostname>-<device_name>)
-    bool success = things_board_client_setup_provisioning(input_device_name.c_str(), generated_device_name_extension.c_str(), true) >= 0; // true for force profisioning
+    bool success = (things_board_client_setup_provisioning(input_device_name.c_str(), generated_device_name_extension.c_str(), true) >= 0); // true for force profisioning
     // respond with seperate cloud connectiosn status display page
     File html_file = SPIFFS.open("/webdir/cloud_connection.html");
     uint32_t size = html_file.size();

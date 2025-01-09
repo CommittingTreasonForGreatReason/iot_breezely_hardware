@@ -229,7 +229,7 @@ void loop()
             }
             else if (try_get_stored_device_name() != nullptr && try_get_stored_token() != nullptr && try_get_stored_device_name_extension() != nullptr)
             {
-                serial_logger_print("using device_name, customer and token from flash config file", LOG_LEVEL_DEBUG);
+                serial_logger_print("using device_name, and token from flash config file", LOG_LEVEL_DEBUG);
                 things_board_client_setup_provisioning(try_get_stored_device_name(), try_get_stored_device_name_extension());
             }
             delay(delay_time_ms);
