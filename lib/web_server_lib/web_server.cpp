@@ -65,6 +65,20 @@ void on_http_not_found(AsyncWebServerRequest *request)
     request->send(404, "text/plain", "Not found");
 }
 
+void on_http_restart(AsyncWebServerRequest *request)
+{
+    serial_logger_print("!!! RESTARTING DEVICE !!!!", LOG_LEVEL_DEBUG);
+    File html_file = SPIFFS.open("/webdir/index.html");
+    uint32_t size = html_file.size();
+    char buffer[size] = {0};
+    html_file.readBytes(buffer, size);
+    request->send(200, "text/html", buffer);
+    delay(1000);
+    WiFi.disconnect();
+    delay(500);
+    ESP.restart();
+}
+
 void on_http_identify(AsyncWebServerRequest *request)
 {
     serial_logger_print("identify invoked", LOG_LEVEL_DEBUG);
@@ -104,7 +118,7 @@ void on_http_sensor_read(AsyncWebServerRequest *request)
 // callback function for handling fetch device info request
 void on_http_fetch_device_info(AsyncWebServerRequest *request)
 {
-    Serial.println("--> device info request from client");
+    serial_logger_print("--> device info request from client", LOG_LEVEL_DEBUG);
 
     JsonDocument jsonDoc;
     if (try_get_stored_device_name() != nullptr && try_get_stored_device_name_extension() != nullptr)
@@ -144,20 +158,32 @@ void on_http_fetch_device_info(AsyncWebServerRequest *request)
 void on_http_fetch_settings(AsyncWebServerRequest *request)
 {
     Serial.println("--> settings request from client");
-
+    char buffer[128] = {0};
     JsonDocument jsonDoc;
+
+    JsonObject root = jsonDoc.to<JsonObject>();
+    JsonArray available_wifi_networks = root.createNestedArray("available-wifi-networks");
+    int n = WiFi.scanNetworks();
+
+    for (int i = 0; i < n; ++i)
+    {
+        // Print SSID and RSSI for each network found
+        sprintf(buffer, "SSID %s | RSSI %d | AUTH %s", WiFi.SSID(i).c_str(), WiFi.RSSI(i), (WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? " " : "*");
+        serial_logger_print(buffer, LOG_LEVEL_DEBUG);
+        available_wifi_networks.add(WiFi.SSID(i));
+    }
+
     if (try_get_stored_device_name() != nullptr && try_get_stored_device_name_extension() != nullptr)
     {
-        char buffer[64] = {0};
-        sprintf(buffer, "%s_%s", try_get_stored_device_name(), try_get_stored_device_name_extension());
-        jsonDoc["device-name"] = buffer;
+        char device_name_buffer[64] = {0};
+        sprintf(device_name_buffer, "%s_%s", try_get_stored_device_name(), try_get_stored_device_name_extension());
+        jsonDoc["device-name"] = device_name_buffer;
     }
     else
     {
         jsonDoc["device-name"] = "not set";
     }
     jsonDoc["token"] = (try_get_stored_token() != nullptr) ? try_get_stored_token() : "not set";
-    // ...
 
     send_http_response_json_format(request, 200, &jsonDoc);
 }
@@ -257,6 +283,8 @@ int web_server_setup()
 {
     // serve static index.html stored in SPIFFS
     server.serveStatic("/", SPIFFS, "/webdir").setDefaultFile("index.html");
+
+    server.on("/restart", HTTP_GET, on_http_restart);
 
     // define the async callback functions for different routes (= http paths)
     server.on("/identify", HTTP_GET, on_http_identify);

@@ -15,12 +15,21 @@
 
     <!-- main section in the middle -->
     <main>
-        <p id="cloud-connection-status">...</p>
-        <p id="configured-hostname"></p>
+        <h2>Cloud Connection Info</h2>
+        <table>
+            <tr>
+                <td>Configured Hostname</td>
+                <td id="configured-hostname">...</td>
+            </tr>
+            <tr>
+                <td>Cloud connection status</td>
+                <td id="cloud-connection-status">unable to connect to cloud</td>
+            </tr>
+        </table>
         <div>
             <br>
             <p id="configured-hyperlink-message"></p>
-            <p id="configured-hyperlink"></p>
+            <h3 id="configured-hyperlink"></h3>
             <nav>
                 <a id="configured-hyperlink-redirect" href="/">Redirect to Start Page</a>
             </nav>

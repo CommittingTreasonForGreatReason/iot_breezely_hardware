@@ -52,11 +52,15 @@ bool get_things_board_connected()
 }
 
 // routine is called periodically to send telemetry date to the things board server
-void things_board_client_routine(float temperature, float humidity, bool window_status)
+bool things_board_client_routine(float temperature, float humidity, bool window_status)
 {
-    try_send_temperature(&tb, temperature);
-    try_send_humidity(&tb, humidity);
-    try_send_window_status(&tb, window_status);
+    if (!try_send_temperature(&tb, temperature))
+        return false;
+    if (!try_send_humidity(&tb, humidity))
+        return false;
+    if (!try_send_window_status(&tb, window_status))
+        return false;
+    return true;
 }
 
 int provision_http(const char *device_name, const char *device_name_extension)
@@ -136,7 +140,12 @@ int things_board_client_setup_provisioning(const char *device_name, const char *
     }
     int64_t timeout_deadline_ms = millis() + thingsboard_connection_timeout_ms;
     uint32_t delay_ms = 500;
-    // start mDNS service
+
+    if (tb.connected())
+    {
+        tb.disconnect();
+    }
+
     while (!tb.connect(THINGSBOARD_SERVER, try_get_stored_token(), THINGSBOARD_MQTT_PORT))
     {
         if (millis() >= timeout_deadline_ms)

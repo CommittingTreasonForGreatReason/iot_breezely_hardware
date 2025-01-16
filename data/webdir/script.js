@@ -9,6 +9,14 @@ function confirmSetDeviceName() {
     }
 }
 
+function confirmRestart() {
+    if (window.confirm("Do you really want to restart? This will soft restart the hardware.")) {
+        const element_form = /**@type {HTMLFormElement}*/ (document.getElementsById("restart_form"));
+        console.log("sending restarting request");
+        element_form.submit();
+    }
+}
+
 // updates device infos display in the background
 function fetchAndDisplayDeviceInfo() {
     console.log("fetching device info stats ...");
@@ -39,7 +47,25 @@ function fetchAndDisplaySettings() {
             let response = JSON.parse(this.responseText);
             document.getElementById("token").innerHTML = response["token"];
             document.getElementById("device-name").innerHTML = response["device-name"];
-            // ...
+            // generate and display table of available networks
+            var table_row_elements = [];
+            var table_col_elements = [];
+            var table_element = /**@type {HTMLTableElement}*/ (document.getElementById("wifi-networks-table"));
+            available_network_names = response["available-wifi-networks"];
+
+            for (var i = 0; i < available_network_names.length; i++) {
+                table_row_elements[i] = /**@type {HTMLTableRowElement}*/ (document.createElement("tr"));
+
+                table_col_elements[0 + i * 2] = /**@type {HTMLTableColElement}*/ (document.createElement("td"));
+                table_col_elements[1 + i * 2] = /**@type {HTMLTableColElement}*/ (document.createElement("td"));
+                table_col_elements[0 + i * 2].innerHTML = i;
+                table_col_elements[1 + i * 2].innerHTML = available_network_names[i];
+
+                table_row_elements[i].append(table_col_elements[0 + i * 2]);
+                table_row_elements[i].append(table_col_elements[1 + i * 2]);
+
+                table_element.append(table_row_elements[i]);
+            }
         }
     }
     xhttp.open("GET", "/settings");

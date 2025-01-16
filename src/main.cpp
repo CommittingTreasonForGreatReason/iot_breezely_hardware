@@ -286,8 +286,15 @@ void loop()
 #endif
             if (things_board_routine_deadline_ms <= esp_timer_get_time() / 1000)
             {
-                things_board_client_routine(temperature, humidity, window_status);
+                bool success = things_board_client_routine(temperature, humidity, window_status);
                 things_board_routine_deadline_ms = esp_timer_get_time() / 1000 + delta_time_ms;
+                if (!success)
+                {
+                    // maybe cloud connection broke down? -> go back to only server
+                    current_state = State::ONLY_SERVER_IDLE;
+                    serial_logger_print("cloud connection broke down :(", LOG_LEVEL_DEBUG);
+                    set_cloud_connection_status(false);
+                }
             }
             delay(100);
         }

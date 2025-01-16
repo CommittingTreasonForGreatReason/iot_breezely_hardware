@@ -27,17 +27,6 @@
     <!-- main section in the middle -->
     <main>
         <h2>Device settings</h2>
-        <!-- DEPRICATED
-        <table>
-            <tr>
-                <td>Current Token</td>
-                <td id="token">...</td>
-            </tr>
-        </table>
-        <form action="/set_token" method="get">
-            <input type="text" placeholder="New Token" name="token">
-            <button type="submit">Update Token</button>
-        </form> -->
         <h2>Device Name</h2>
         <table>
             <tr>
@@ -66,17 +55,17 @@
             function generateQRCode() {
                 // get device name from table cell above 
                 var text = document.getElementById("device-name").innerText;
-                
+
                 // clear previous QR code
-                document.getElementById("qrcode").innerHTML = ""; 
+                document.getElementById("qrcode").innerHTML = "";
 
                 var qrcode = new QRCode(document.getElementById("qrcode"), {
                     text: text,
                     width: 256,
                     height: 256,
-                    colorDark : "#000000",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.H
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
                 });
             }
 
@@ -98,15 +87,19 @@
         <div>
             <br>
             <h2>Wifi Connection</h2>
-            <table>
-                <tr>List of available networks</tr>
+            <table id="wifi-networks-table">
+                <tr>List of available networks (WIP)</tr>
+                <tr>
+                    <td>num</td>
+                    <td>SSID</td>
+                </tr>
             </table>
         </div>
         <div>
             <br>
             <h2></h2>
-            <form action="#">
-                <p><button type="submit">Restart Device</button></p>
+            <form id="restart_form" action="/restart" method="get">
+                <button onclick="confirmRestart()">Restart Device</button>
             </form>
         </div>
 
